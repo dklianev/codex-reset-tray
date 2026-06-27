@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodexResetTray.Core\CodexResetTray.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AssemblyName>CodexResetTray</AssemblyName>
+    <RootNamespace>CodexResetTray.App</RootNamespace>
+    <Version>0.1.0</Version>
+    <Authors>Codex Reset Tray contributors</Authors>
+    <Description>Lightweight Windows tray dashboard for Codex rate-limit reset windows.</Description>
+  </PropertyGroup>
+
+</Project>

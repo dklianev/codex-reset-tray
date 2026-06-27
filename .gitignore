@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+
+# IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS noise
+Thumbs.db
+Desktop.ini
+
+# Local secrets and Codex state
+.env
+.env.*
+auth.json
+*.log

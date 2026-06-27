@@ -1,0 +1,153 @@
+<Window x:Class="CodexResetTray.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:CodexResetTray.App.ViewModels"
+        mc:Ignorable="d"
+        Title="Codex Reset Tray"
+        Width="430"
+        Height="620"
+        MinWidth="390"
+        MinHeight="520"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:BucketViewModel}">
+            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding LimitId}" Style="{StaticResource TinyText}" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Style="{StaticResource PillBorderStyle}" Background="{Binding StateBrush}">
+                            <TextBlock Text="{Binding StateLabel}" Foreground="#101418" FontSize="11" FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Background="{StaticResource PanelRaisedBrush}" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Primary.Label}" Style="{StaticResource TinyText}" />
+                                <TextBlock Text="{Binding Primary.ResetsText}" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                <ProgressBar Value="{Binding Primary.UsedPercent}" Maximum="100" Margin="0,12,0,0" />
+                                <TextBlock Text="{Binding Primary.UsedText}" Style="{StaticResource MutedText}" Margin="0,7,0,0" />
+                                <TextBlock Text="{Binding Primary.ExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="{StaticResource PanelRaisedBrush}" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Secondary.Label}" Style="{StaticResource TinyText}" />
+                                <TextBlock Text="{Binding Secondary.ResetsText}" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                <ProgressBar Value="{Binding Secondary.UsedPercent}" Maximum="100" Margin="0,12,0,0" Foreground="{StaticResource AccentBlueBrush}" />
+                                <TextBlock Text="{Binding Secondary.UsedText}" Style="{StaticResource MutedText}" Margin="0,7,0,0" />
+                                <TextBlock Text="{Binding Secondary.ExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Grid.Row="2" Text="{Binding PlanLabel}" Style="{StaticResource MutedText}" Margin="0,12,0,0" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource ShellBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Padding="22,20,22,14" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Codex Reset Tray" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock Text="Read-only Windows tray monitor" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
+                </StackPanel>
+                <Border Grid.Column="1" Style="{StaticResource PillBorderStyle}">
+                    <TextBlock Text="No token reads" Style="{StaticResource TinyText}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,18,22,10">
+                <Border Style="{StaticResource CardBorderStyle}" Background="{StaticResource PanelRaisedBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding StatusTitle}" FontSize="30" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource MutedText}" Margin="0,6,18,0" />
+                            <TextBlock Text="{Binding ErrorText}" Foreground="{StaticResource WarningBrush}" FontSize="12" Margin="0,10,0,0" />
+                        </StackPanel>
+                        <Grid Grid.Column="1" Width="92" Height="92">
+                            <Ellipse Stroke="{StaticResource StrokeBrush}" StrokeThickness="8" />
+                            <Ellipse Stroke="{Binding StatusBrush}" StrokeThickness="8" StrokeDashArray="6 2" />
+                            <TextBlock Text="{Binding HeroPercent, StringFormat={}{0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Grid Margin="0,12,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource PillBorderStyle}">
+                        <TextBlock Text="{Binding ResetCreditsText}" FontWeight="SemiBold" FontSize="12" />
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource PillBorderStyle}">
+                        <TextBlock Text="{Binding LastUpdatedText}" Style="{StaticResource TinyText}" />
+                    </Border>
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding Buckets}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Padding="22,14,22,18" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Uses Codex app-server, not auth.json." Style="{StaticResource TinyText}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Docs" Command="{Binding OpenCodexDocsCommand}" Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
+                <Button Grid.Column="5" Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

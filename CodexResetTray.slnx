@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CodexResetTray.App/CodexResetTray.App.csproj" />
+    <Project Path="src/CodexResetTray.Core/CodexResetTray.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CodexResetTray.Tests/CodexResetTray.Tests.csproj" />
+  </Folder>
+</Solution>
