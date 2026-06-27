@@ -33,6 +33,7 @@ public partial class App : System.Windows.Application
         _dashboard = new DashboardViewModel(source);
         _window = new MainWindow(_dashboard);
         MainWindow = _window;
+        _dashboard.ExitRequested += OnExitRequested;
 
         _tray = new TrayController(_window, _dashboard);
         _tray.Initialize();
@@ -48,9 +49,19 @@ public partial class App : System.Windows.Application
         await _dashboard.RefreshAsync();
     }
 
+    private void OnExitRequested(object? sender, EventArgs e)
+    {
+        _window?.ForceClose();
+        Shutdown();
+    }
+
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
         _refreshTimer?.Stop();
+        if (_dashboard is not null)
+        {
+            _dashboard.ExitRequested -= OnExitRequested;
+        }
         _tray?.Dispose();
         _dashboard?.Dispose();
         if (_ownsSingleInstanceMutex)

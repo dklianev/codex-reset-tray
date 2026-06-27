@@ -17,10 +17,10 @@ public sealed class BucketViewModel
         StateLabel = bucket.StateLabel;
         StateBrush = bucket.StateLabel switch
         {
-            "Limited" => new MediaSolidColorBrush(MediaColor.FromRgb(255, 107, 107)),
-            "Near limit" => new MediaSolidColorBrush(MediaColor.FromRgb(255, 183, 77)),
-            "Watch" => new MediaSolidColorBrush(MediaColor.FromRgb(96, 165, 250)),
-            _ => new MediaSolidColorBrush(MediaColor.FromRgb(89, 209, 172))
+            "Limited" => new MediaSolidColorBrush(MediaColor.FromRgb(244, 107, 107)),   // #F46B6B
+            "Near limit" => new MediaSolidColorBrush(MediaColor.FromRgb(251, 140, 59)), // #FB8C3B
+            "Watch" => new MediaSolidColorBrush(MediaColor.FromRgb(251, 191, 36)),      // #FBBF24
+            _ => new MediaSolidColorBrush(MediaColor.FromRgb(54, 211, 153))             // #36D399
         };
 
         Primary = WindowViewModel.From(bucket.Primary, "5-hour");

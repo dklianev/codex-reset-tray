@@ -44,7 +44,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private int _weeklyPercent;
     private int? _trayPrimaryPercent;
     private int? _trayWeeklyPercent;
-    private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(96, 165, 250));
+    private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
     public DashboardViewModel(IRateLimitSource source)
     {
@@ -53,12 +53,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         OpenCodexDocsCommand = new AsyncRelayCommand(OpenCodexDocsAsync);
         ExitCommand = new AsyncRelayCommand(() =>
         {
-            System.Windows.Application.Current.Shutdown();
+            ExitRequested?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         });
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Raised when the user chooses Exit from the dashboard. The host
+    /// (App) force-closes the window and shuts the application down.</summary>
+    public event EventHandler? ExitRequested;
 
     public ObservableCollection<BucketViewModel> Buckets { get; } = new();
 
@@ -245,8 +249,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             var snapshot = await _source.ReadAsync(timeout.Token);
             ApplySnapshot(snapshot);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException or JsonException or System.ComponentModel.Win32Exception)
+        catch (OperationCanceledException)
         {
+            ApplyError(new TimeoutException("Codex app-server did not respond in time."));
+        }
+        catch (Exception ex)
+        {
+            // Resident tray app: surface any read failure in the UI instead of
+            // letting it escape an async-void caller and tear down the process.
             ApplyError(ex);
         }
         finally
@@ -280,10 +290,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         };
         StatusBrush = maxUsed switch
         {
-            >= 100 => new MediaSolidColorBrush(MediaColor.FromRgb(255, 107, 107)),
-            >= 90 => new MediaSolidColorBrush(MediaColor.FromRgb(255, 183, 77)),
-            >= 70 => new MediaSolidColorBrush(MediaColor.FromRgb(96, 165, 250)),
-            _ => new MediaSolidColorBrush(MediaColor.FromRgb(89, 209, 172))
+            >= 100 => new MediaSolidColorBrush(MediaColor.FromRgb(244, 107, 107)), // #F46B6B
+            >= 90 => new MediaSolidColorBrush(MediaColor.FromRgb(251, 140, 59)),   // #FB8C3B
+            >= 70 => new MediaSolidColorBrush(MediaColor.FromRgb(251, 191, 36)),   // #FBBF24
+            _ => new MediaSolidColorBrush(MediaColor.FromRgb(54, 211, 153))        // #36D399
         };
         StatusDetail = BuildStatusDetail(snapshot);
         ResetCreditsText = snapshot.ResetCreditsAvailable is { } credits
@@ -375,7 +385,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         HeroPercent = 0;
         StatusTitle = "Needs attention";
         StatusDetail = "Codex rate limits could not be read.";
-        StatusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(255, 183, 77));
+        StatusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(251, 191, 36)); // #FBBF24
         ErrorText = SecretRedactor.Redact(ex.Message);
         LastUpdatedText = $"Failed {ResetTimeFormatter.FormatExact(DateTimeOffset.Now, TimeZoneInfo.Local)}";
         ResetCreditsText = "Reset credits: unavailable";
@@ -434,13 +444,23 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         return $"{label}: {percent} used, resets {reset}";
     }
 
-    private static Task OpenCodexDocsAsync()
+    private Task OpenCodexDocsAsync()
     {
-        Process.Start(new ProcessStartInfo
+        try
         {
-            FileName = "https://developers.openai.com/codex/app-server.md",
-            UseShellExecute = true
-        });
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://developers.openai.com/codex/app-server.md",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            // The docs button must never crash the resident app, whatever the
+            // shell throws (no handler, restricted policy, platform quirk).
+            ErrorText = SecretRedactor.Redact($"Could not open the docs link: {ex.Message}");
+        }
+
         return Task.CompletedTask;
     }
 

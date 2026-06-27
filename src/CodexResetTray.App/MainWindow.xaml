@@ -6,9 +6,10 @@
         xmlns:vm="clr-namespace:CodexResetTray.App.ViewModels"
         mc:Ignorable="d"
         Title="Codex Reset Tray"
+        Icon="pack://application:,,,/Assets/app.ico"
         Width="500"
         Height="660"
-        MinWidth="450"
+        MinWidth="460"
         MinHeight="560"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
@@ -16,82 +17,113 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
     <Window.Resources>
-        <Style x:Key="ErrorTextStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MutedText}">
-            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Margin" Value="0,0,0,10" />
+
+        <!-- Inline warning surface: amber tone, collapses when ErrorText is empty. -->
+        <Style x:Key="ErrorSurfaceStyle" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="{StaticResource WarningSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource WarningStrokeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,0,16" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ErrorText}" Value="">
                     <Setter Property="Visibility" Value="Collapsed" />
-                    <Setter Property="Margin" Value="0" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
 
+        <!-- ============================================================ -->
+        <!--  BUCKET CARD                                                  -->
+        <!-- ============================================================ -->
         <DataTemplate DataType="{x:Type vm:BucketViewModel}">
-            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10" Padding="0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,10">
+                <StackPanel>
 
-                    <Border Background="{Binding StateBrush}" CornerRadius="8,0,0,8" />
-
-                    <Grid Grid.Column="1" Margin="14">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="12" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding PlanLabel}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
+                    <!-- Header row: name + plan, state chip on the right. -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource TitleText}" />
+                            <TextBlock Text="{Binding PlanLabel}" Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Border Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Background="{StaticResource PanelRaisedBrush}"
+                                BorderBrush="{StaticResource StrokeBrush}"
+                                BorderThickness="1"
+                                CornerRadius="999"
+                                Padding="9,4">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                                         Fill="{Binding StateBrush}" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding StateLabel}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           TextWrapping="NoWrap"
+                                           Foreground="{Binding StateBrush}" />
                             </StackPanel>
-                            <Border Grid.Column="1" Style="{StaticResource PillBorderStyle}" Padding="8,4">
-                                <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding StateBrush}" />
-                            </Border>
-                        </Grid>
-
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="16" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel>
-                                <DockPanel>
-                                    <TextBlock Text="{Binding Primary.Label}" Style="{StaticResource TinyText}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Primary.UsedText}" DockPanel.Dock="Right" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="12" />
-                                </DockPanel>
-                                <ProgressBar Value="{Binding Primary.UsedPercent, Mode=OneWay}" Maximum="100" Margin="0,7,0,0" />
-                                <TextBlock Text="{Binding Primary.ResetsText}" Style="{StaticResource MutedText}" Margin="0,7,0,0" />
-                                <TextBlock Text="{Binding Primary.ExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2">
-                                <DockPanel>
-                                    <TextBlock Text="{Binding Secondary.Label}" Style="{StaticResource TinyText}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Secondary.UsedText}" DockPanel.Dock="Right" Foreground="{StaticResource AccentBlueBrush}" FontWeight="SemiBold" FontSize="12" />
-                                </DockPanel>
-                                <ProgressBar Value="{Binding Secondary.UsedPercent, Mode=OneWay}" Maximum="100" Margin="0,7,0,0" Foreground="{StaticResource AccentBlueBrush}" />
-                                <TextBlock Text="{Binding Secondary.ResetsText}" Style="{StaticResource MutedText}" Margin="0,7,0,0" />
-                                <TextBlock Text="{Binding Secondary.ExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Grid>
+                        </Border>
                     </Grid>
-                </Grid>
+
+                    <Border Height="1" Background="{StaticResource HairlineBrush}" Margin="0,14,0,14" />
+
+                    <!-- Two windows side by side. -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Primary (5-hour) -->
+                        <StackPanel>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="{Binding Primary.Label}" Style="{StaticResource EyebrowText}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Primary.UsedText}" DockPanel.Dock="Right"
+                                           Foreground="{StaticResource InkBrush}"
+                                           FontWeight="SemiBold" FontSize="12"
+                                           Typography.NumeralAlignment="Tabular" />
+                            </DockPanel>
+                            <ProgressBar Value="{Binding Primary.UsedPercent, Mode=OneWay}" Maximum="100"
+                                         Foreground="{StaticResource AccentBrush}" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Primary.ResetsText}" Style="{StaticResource MutedText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Primary.ExactText}" Style="{StaticResource CaptionText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                        </StackPanel>
+
+                        <!-- Secondary (weekly) -->
+                        <StackPanel Grid.Column="2">
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="{Binding Secondary.Label}" Style="{StaticResource EyebrowText}"
+                                           Foreground="{StaticResource AccentBlueBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Secondary.UsedText}" DockPanel.Dock="Right"
+                                           Foreground="{StaticResource InkBrush}"
+                                           FontWeight="SemiBold" FontSize="12"
+                                           Typography.NumeralAlignment="Tabular" />
+                            </DockPanel>
+                            <ProgressBar Value="{Binding Secondary.UsedPercent, Mode=OneWay}" Maximum="100"
+                                         Foreground="{StaticResource AccentBlueBrush}" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Secondary.ResetsText}" Style="{StaticResource MutedText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Secondary.ExactText}" Style="{StaticResource CaptionText}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
             </Border>
         </DataTemplate>
     </Window.Resources>
 
+    <!-- ================================================================ -->
+    <!--  THREE-ZONE SHELL: header / scrollable content / footer          -->
+    <!-- ================================================================ -->
     <Grid Background="{StaticResource ShellGradientBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -99,125 +131,170 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Padding="22,17,22,13" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1" Background="#0D100E">
+        <!-- ===== HEADER ===== -->
+        <Border Background="{StaticResource ChromeBrush}"
+                BorderBrush="{StaticResource StrokeBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,16,20,16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Codex Reset Tray" FontSize="23" FontWeight="Bold" />
-                    <TextBlock Text="{Binding TrayStatusText}" Foreground="{StaticResource AccentBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Codex Reset Tray" FontSize="16" FontWeight="SemiBold"
+                               TextWrapping="NoWrap" />
+                    <TextBlock Text="Rate-limit windows" Style="{StaticResource CaptionText}"
+                               Margin="0,2,0,0" TextWrapping="NoWrap" />
                 </StackPanel>
-                <Border Grid.Column="1" Style="{StaticResource PillBorderStyle}">
+
+                <!-- Status chip: colored dot (StatusBrush) + StatusTitle. -->
+                <Border Grid.Column="1" Style="{StaticResource PillBorderStyle}" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="8" Height="8" Fill="{Binding StatusBrush}" Margin="0,0,7,0" />
-                        <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold" />
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                 Fill="{Binding StatusBrush}" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold"
+                                   TextWrapping="NoWrap" />
                     </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="22,18,22,12">
+        <!-- ===== SCROLLABLE CONTENT ===== -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+            <StackPanel Margin="20,20,20,16">
+
+                <!-- ===== HERO CARD ===== -->
                 <Border Style="{StaticResource CardBorderStyle}"
                         Background="{StaticResource HeroPanelBrush}"
-                        Padding="0"
-                        Effect="{StaticResource PanelShadowEffect}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="4" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                        Padding="20"
+                        Effect="{StaticResource HeroShadowEffect}">
+                    <StackPanel>
 
-                        <Border Background="{StaticResource AccentRailBrush}" CornerRadius="8,8,0,0" />
-
-                        <Grid Grid.Row="1" Margin="18">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="18" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="16" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Limit Signal" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="{Binding MainLimitName}" FontSize="30" FontWeight="Bold" Margin="0,4,0,0" />
-                                    <TextBlock Text="{Binding SignalCaption}" Style="{StaticResource MutedText}" Margin="0,4,0,0" />
-                                </StackPanel>
-                                <Border Grid.Column="1" Width="90" Height="78" Background="#101410" BorderBrush="{StaticResource DeepLineBrush}" BorderThickness="1" CornerRadius="8">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding HeroPercent, StringFormat={}{0}%}" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Peak load" Style="{StaticResource TinyText}" HorizontalAlignment="Center" />
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-
-                            <Grid Grid.Row="2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="1" />
-                                    <ColumnDefinition Width="22" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel>
-                                    <TextBlock Text="5-hour window" Style="{StaticResource EyebrowText}" />
-                                    <DockPanel Margin="0,5,0,0">
-                                        <TextBlock Text="{Binding PrimaryUsageText}" Style="{StaticResource MetricNumberText}" Foreground="{StaticResource AccentBrush}" />
-                                        <TextBlock Text="used" DockPanel.Dock="Right" VerticalAlignment="Bottom" Style="{StaticResource MutedText}" Margin="8,0,0,7" />
-                                    </DockPanel>
-                                    <ProgressBar Value="{Binding PrimaryPercent, Mode=OneWay}" Maximum="100" Margin="0,8,0,0" />
-                                    <TextBlock Text="{Binding PrimaryResetText}" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
-                                    <TextBlock Text="{Binding PrimaryExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
-                                </StackPanel>
-
-                                <Border Grid.Column="1" Background="{StaticResource DeepLineBrush}" />
-
-                                <StackPanel Grid.Column="3">
-                                    <TextBlock Text="Weekly window" Style="{StaticResource EyebrowText}" Foreground="{StaticResource AccentBlueBrush}" />
-                                    <DockPanel Margin="0,5,0,0">
-                                        <TextBlock Text="{Binding WeeklyUsageText}" Style="{StaticResource MetricNumberText}" Foreground="{StaticResource AccentBlueBrush}" />
-                                        <TextBlock Text="used" DockPanel.Dock="Right" VerticalAlignment="Bottom" Style="{StaticResource MutedText}" Margin="8,0,0,7" />
-                                    </DockPanel>
-                                    <ProgressBar Value="{Binding WeeklyPercent, Mode=OneWay}" Maximum="100" Margin="0,8,0,0" Foreground="{StaticResource AccentBlueBrush}" />
-                                    <TextBlock Text="{Binding WeeklyResetText}" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
-                                    <TextBlock Text="{Binding WeeklyExactText}" Style="{StaticResource TinyText}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBlock Grid.Row="4" Text="{Binding StatusDetail}" Style="{StaticResource MutedText}" />
+                        <!-- Hero header: limit identity + the single peak-load signal. -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Limit signal" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="{Binding MainLimitName}" FontSize="22" FontWeight="Bold"
+                                           Margin="0,4,0,0" TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding SignalCaption}" Style="{StaticResource MutedText}"
+                                           Margin="0,5,0,0" TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                        Margin="16,0,0,0">
+                                <TextBlock Text="{Binding HeroPercent, StringFormat={}{0}%}"
+                                           Style="{StaticResource HeroNumberText}"
+                                           Foreground="{Binding StatusBrush}"
+                                           HorizontalAlignment="Right" />
+                                <TextBlock Text="peak load" Style="{StaticResource CaptionText}"
+                                           HorizontalAlignment="Right" Margin="0,2,0,0" />
+                            </StackPanel>
                         </Grid>
-                    </Grid>
+
+                        <!-- Two windows as raised insets. -->
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 5-hour (emerald) -->
+                            <Border Style="{StaticResource InsetBorderStyle}" Background="{StaticResource AccentWashBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="5-hour window" Style="{StaticResource EyebrowText}"
+                                               Foreground="{StaticResource AccentBrush}" />
+                                    <DockPanel Margin="0,8,0,0" LastChildFill="False">
+                                        <TextBlock Text="{Binding PrimaryUsageText}" Style="{StaticResource WindowNumberText}"
+                                                   Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="used" DockPanel.Dock="Right" VerticalAlignment="Bottom"
+                                                   Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                                    </DockPanel>
+                                    <ProgressBar Value="{Binding PrimaryPercent, Mode=OneWay}" Maximum="100"
+                                                 Foreground="{StaticResource AccentBrush}" Margin="0,10,0,0" />
+                                    <TextBlock Text="{Binding PrimaryResetText}" Style="{StaticResource ResetValueText}"
+                                               Margin="0,12,0,0" />
+                                    <TextBlock Text="{Binding PrimaryExactText}" Style="{StaticResource CaptionText}"
+                                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Weekly (blue) -->
+                            <Border Grid.Column="2" Style="{StaticResource InsetBorderStyle}" Background="{StaticResource AccentBlueWashBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="Weekly window" Style="{StaticResource EyebrowText}"
+                                               Foreground="{StaticResource AccentBlueBrush}" />
+                                    <DockPanel Margin="0,8,0,0" LastChildFill="False">
+                                        <TextBlock Text="{Binding WeeklyUsageText}" Style="{StaticResource WindowNumberText}"
+                                                   Foreground="{StaticResource AccentBlueBrush}" />
+                                        <TextBlock Text="used" DockPanel.Dock="Right" VerticalAlignment="Bottom"
+                                                   Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                                    </DockPanel>
+                                    <ProgressBar Value="{Binding WeeklyPercent, Mode=OneWay}" Maximum="100"
+                                                 Foreground="{StaticResource AccentBlueBrush}" Margin="0,10,0,0" />
+                                    <TextBlock Text="{Binding WeeklyResetText}" Style="{StaticResource ResetValueText}"
+                                               Margin="0,12,0,0" />
+                                    <TextBlock Text="{Binding WeeklyExactText}" Style="{StaticResource CaptionText}"
+                                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Quiet supporting detail line. -->
+                        <Border Height="1" Background="{StaticResource HairlineBrush}" Margin="0,16,0,14" />
+                        <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource MutedText}" />
+                    </StackPanel>
                 </Border>
 
-                <Grid Margin="0,13,0,14">
+                <!-- ===== META ROW ===== -->
+                <Grid Margin="0,14,0,16">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="10" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource PillBorderStyle}">
-                        <TextBlock Text="{Binding ResetCreditsText}" FontWeight="SemiBold" FontSize="12" />
+                        <TextBlock Text="{Binding ResetCreditsText}" FontSize="12" FontWeight="SemiBold"
+                                   TextWrapping="NoWrap" Typography.NumeralAlignment="Tabular" />
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource PillBorderStyle}">
-                        <TextBlock Text="{Binding LastUpdatedText}" Style="{StaticResource TinyText}" />
+                        <TextBlock Text="{Binding LastUpdatedText}" Style="{StaticResource CaptionText}"
+                                   TextWrapping="NoWrap" Typography.NumeralAlignment="Tabular" />
                     </Border>
                 </Grid>
 
-                <TextBlock Text="{Binding ErrorText}" Style="{StaticResource ErrorTextStyle}" />
-                <TextBlock Text="Bucket Details" Style="{StaticResource EyebrowText}" Margin="0,0,0,8" />
+                <!-- ===== INLINE WARNING ===== -->
+                <Border Style="{StaticResource ErrorSurfaceStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Top" Margin="0,5,0,0"
+                                 Fill="{StaticResource WarningBrush}" />
+                        <TextBlock Grid.Column="2" Text="{Binding ErrorText}"
+                                   Foreground="{StaticResource WarningBrush}" FontSize="12" />
+                    </Grid>
+                </Border>
+
+                <!-- ===== BUCKET DETAILS ===== -->
+                <TextBlock Text="Bucket details" Style="{StaticResource SectionHeadingText}" Margin="2,0,0,10" />
                 <ItemsControl ItemsSource="{Binding Buckets}" />
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Row="2" Padding="22,13,22,16" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0" Background="#0D100E">
+        <!-- ===== FOOTER ===== -->
+        <Border Grid.Row="2" Background="{StaticResource ChromeBrush}"
+                BorderBrush="{StaticResource StrokeBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="20,14,20,16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -227,10 +304,15 @@
                     <ColumnDefinition Width="8" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Read-only app-server source. No auth.json reads." Style="{StaticResource TinyText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                <Button Grid.Column="1" Content="Docs" Command="{Binding OpenCodexDocsCommand}" Style="{StaticResource SecondaryButton}" />
-                <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
-                <Button Grid.Column="5" Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" />
+                <TextBlock Text="Read-only app-server source"
+                           Style="{StaticResource CaptionText}" VerticalAlignment="Center"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="1" Content="Docs" Command="{Binding OpenCodexDocsCommand}"
+                        Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="3" Content="Exit" Command="{Binding ExitCommand}"
+                        Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="5" Content="Refresh" Command="{Binding RefreshCommand}"
+                        Style="{StaticResource PrimaryButton}" />
             </Grid>
         </Border>
     </Grid>
