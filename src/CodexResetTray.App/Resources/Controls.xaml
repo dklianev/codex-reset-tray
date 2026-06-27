@@ -2,11 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================================ -->
-    <!--  WINDOW                                                       -->
+    <!--  WINDOW + BASE TEXT                                           -->
     <!-- ============================================================ -->
     <Style TargetType="{x:Type Window}">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
-        <Setter Property="Background" Value="{StaticResource ShellBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
         <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
@@ -14,19 +13,16 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
 
-    <!-- ============================================================ -->
-    <!--  TYPOGRAPHY                                                   -->
-    <!-- ============================================================ -->
-
-    <!-- Implicit base: body copy. -->
     <Style TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 
-    <!-- Eyebrow: 11 semibold uppercase, wide tracking, subtle tone. -->
+    <!-- ============================================================ -->
+    <!--  TYPOGRAPHY                                                   -->
+    <!-- ============================================================ -->
     <Style x:Key="EyebrowText" TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{StaticResource SubtleInkBrush}" />
         <Setter Property="FontSize" Value="11" />
@@ -35,103 +31,72 @@
         <Setter Property="Typography.Capitals" Value="AllSmallCaps" />
     </Style>
 
-    <!-- Section heading: 13 semibold uppercase, muted — separates content groups. -->
-    <Style x:Key="SectionHeadingText" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource EyebrowText}">
+    <Style x:Key="SectionLabel" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource EyebrowText}">
         <Setter Property="Foreground" Value="{StaticResource MutedInkBrush}" />
         <Setter Property="FontSize" Value="12" />
     </Style>
 
-    <!-- Title: 15 semibold. -->
     <Style x:Key="TitleText" TargetType="{x:Type TextBlock}">
-        <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
-        <Setter Property="FontSize" Value="15" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="TextWrapping" Value="NoWrap" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-    </Style>
-
-    <!-- Muted body. -->
-    <Style x:Key="MutedText" TargetType="{x:Type TextBlock}">
-        <Setter Property="Foreground" Value="{StaticResource MutedInkBrush}" />
-        <Setter Property="FontSize" Value="12" />
-    </Style>
-
-    <!-- Caption: 11 subtle — exact timestamps, secondary lines. -->
-    <Style x:Key="CaptionText" TargetType="{x:Type TextBlock}">
-        <Setter Property="Foreground" Value="{StaticResource SubtleInkBrush}" />
-        <Setter Property="FontSize" Value="11" />
-    </Style>
-
-    <!-- Hero number: 36 bold, Display family, tabular figures. -->
-    <Style x:Key="HeroNumberText" TargetType="{x:Type TextBlock}">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
-        <Setter Property="FontSize" Value="36" />
-        <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="LineHeight" Value="38" />
-        <Setter Property="TextWrapping" Value="NoWrap" />
-        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
-    </Style>
-
-    <!-- Window number: 26 semibold, Display family, tabular figures. -->
-    <Style x:Key="WindowNumberText" TargetType="{x:Type TextBlock}">
-        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
-        <Setter Property="FontSize" Value="26" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="LineHeight" Value="28" />
-        <Setter Property="TextWrapping" Value="NoWrap" />
-        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
-    </Style>
-
-    <!-- Reset value line: 14 semibold, tabular (carries time digits). -->
-    <Style x:Key="ResetValueText" TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="TextWrapping" Value="NoWrap" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
+
+    <Style x:Key="MutedText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource MutedInkBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style x:Key="CaptionText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource SubtleInkBrush}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- Monospace data accent: timers, exact times, row percentages. -->
+    <Style x:Key="MonoCaption" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource SubtleInkBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style x:Key="ResetValueText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
     <!-- ============================================================ -->
-    <!--  SURFACES                                                     -->
+    <!--  SURFACES                                                    -->
     <!-- ============================================================ -->
-
     <Style x:Key="CardBorderStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource PanelBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+        <Setter Property="Background" Value="{StaticResource CardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="16" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="18" />
     </Style>
 
-    <!-- Inset: a raised channel inside a card (the two hero windows). -->
-    <Style x:Key="InsetBorderStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource PanelRaisedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="14" />
-    </Style>
-
-    <!-- Pill: quiet rounded chip for meta and status. -->
     <Style x:Key="PillBorderStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource PanelRaisedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+        <Setter Property="Background" Value="{StaticResource PillBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PillStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="999" />
-        <Setter Property="Padding" Value="11,6" />
+        <Setter Property="Padding" Value="11,5" />
     </Style>
 
     <!-- ============================================================ -->
-    <!--  BUTTONS                                                      -->
+    <!--  BUTTONS                                                     -->
     <!-- ============================================================ -->
-
     <Style x:Key="PrimaryButton" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Foreground" Value="#06231A" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="18,9" />
+        <Setter Property="Background" Value="{StaticResource AccentGradientBrush}" />
+        <Setter Property="Foreground" Value="#05231A" />
+        <Setter Property="Padding" Value="20,10" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
@@ -140,40 +105,25 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
+                    <Grid x:Name="Root">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="11"
+                                Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="16" ShadowDepth="0" Opacity="0.45" Color="{StaticResource AccentGlowColor}" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
                         </Border>
-                        <!-- Keyboard focus ring drawn just inside the edge. -->
-                        <Border x:Name="FocusRing"
-                                CornerRadius="8"
-                                BorderBrush="{StaticResource AccentBlueHoverBrush}"
-                                BorderThickness="2"
-                                Margin="-1"
-                                Visibility="Collapsed"
-                                IsHitTestVisible="False" />
+                        <Border x:Name="Sheen" CornerRadius="11" Background="#FFFFFF" Opacity="0" IsHitTestVisible="False" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentHoverBrush}" />
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                            <Setter TargetName="Sheen" Property="Opacity" Value="0.12" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Root" Property="Opacity" Value="0.85" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Root" Property="Opacity" Value="0.82" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Root" Property="Opacity" Value="0.42" />
+                            <Setter TargetName="Root" Property="Opacity" Value="0.4" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -182,13 +132,11 @@
         </Setter>
     </Style>
 
-    <!-- Secondary: quiet surface button for Docs / Exit. -->
     <Style x:Key="SecondaryButton" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="{StaticResource PanelRaisedBrush}" />
+        <Setter Property="Background" Value="{StaticResource PillBrush}" />
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="16,9" />
+        <Setter Property="BorderBrush" Value="{StaticResource PillStrokeBrush}" />
+        <Setter Property="Padding" Value="16,10" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
@@ -197,40 +145,53 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                        <Border x:Name="FocusRing"
-                                CornerRadius="8"
-                                BorderBrush="{StaticResource AccentBlueHoverBrush}"
-                                BorderThickness="2"
-                                Margin="-1"
-                                Visibility="Collapsed"
-                                IsHitTestVisible="False" />
-                    </Grid>
+                    <Border x:Name="Root" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                            CornerRadius="11" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="#262E3A" />
-                            <Setter TargetName="Root" Property="BorderBrush" Value="#3A434F" />
+                            <Setter TargetName="Root" Property="Background" Value="{StaticResource ChromeHoverBrush}" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource GlassHighlightBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.4" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Frameless-window close button (x). -->
+    <Style x:Key="ChromeCloseButton" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource MutedInkBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="9">
+                        <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform"
+                              Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4"
+                              Data="M0,0 L10,10 M10,0 L0,10"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{StaticResource CloseHoverBrush}" />
+                            <Setter TargetName="Glyph" Property="Stroke" Value="#FFFFFF" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Root" Property="Opacity" Value="0.85" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Root" Property="Opacity" Value="0.42" />
-                            <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -239,14 +200,12 @@
     </Style>
 
     <!-- ============================================================ -->
-    <!--  PROGRESS BAR                                                 -->
-    <!--  Rounded trough + fill. Foreground sets the identity color.   -->
-    <!--  Height 6 reads crisp at the dashboard scale.                 -->
+    <!--  SLEEK PROGRESS BAR (model rows)                             -->
     <!-- ============================================================ -->
     <Style TargetType="{x:Type ProgressBar}">
         <Setter Property="Height" Value="6" />
-        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Background" Value="{StaticResource TrackBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource AccentGradientBrush}" />
+        <Setter Property="Background" Value="{StaticResource GaugeTrackBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
@@ -257,6 +216,51 @@
                         <Decorator x:Name="PART_Indicator" HorizontalAlignment="Left">
                             <Border Background="{TemplateBinding Foreground}" CornerRadius="3" />
                         </Decorator>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================================================ -->
+    <!--  SLIM SCROLLBAR                                               -->
+    <!-- ============================================================ -->
+    <Style TargetType="{x:Type ScrollBar}">
+        <Setter Property="Width" Value="9" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                    <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="{x:Type Thumb}">
+                                            <Border CornerRadius="4" Background="#2EFFFFFF" Margin="3,2" />
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+                        </Track>
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

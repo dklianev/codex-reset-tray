@@ -14,3 +14,6 @@
 - Added a branded multi-resolution application/window icon (`Assets/app.ico`) with a reproducible generator (`packaging/generate-app-icon.ps1`).
 - Unified status colors across the dashboard and tray into one usage-state ramp (emerald -> amber -> orange -> red); blue is reserved for the weekly window.
 - Hardened refresh, docs-link, and exit handling so transient failures surface in the UI instead of crashing the resident app.
+- Reworked the dashboard into a modern frameless Windows 11 app: custom rounded chrome, gradient-mesh backdrop, twin radial usage gauges with state-driven gradient strokes and glow, monospace data readouts, and a staggered load animation.
+- Simplified the system tray icon to a single bold, state-coloured ring that fills with 5-hour usage - instantly legible at 16 px on light and dark taskbars.
+- Refreshed the application/window icon to a matching emerald-to-cyan ring mark.

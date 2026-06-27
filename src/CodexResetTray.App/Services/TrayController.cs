@@ -44,7 +44,7 @@ public sealed class TrayController : IDisposable
         {
             Enabled = false
         };
-        _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent, _dashboard.TrayWeeklyPercent);
+        _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent);
 
         _notifyIcon = new Forms.NotifyIcon
         {
@@ -126,7 +126,7 @@ public sealed class TrayController : IDisposable
         }
 
         var previousIcon = _currentIcon;
-        _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent, _dashboard.TrayWeeklyPercent);
+        _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent);
         _notifyIcon.Icon = _currentIcon;
         previousIcon?.Dispose();
     }
