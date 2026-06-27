@@ -8,6 +8,8 @@ It uses the official Codex app-server protocol, asks only for `account/rateLimit
 
 - Tray-first Windows app with a compact WPF dashboard.
 - Shows 5-hour and weekly reset timers, exact local reset time, used percent, and reset credit count.
+- Shows live 5-hour and weekly percentages in the tray tooltip and tray context menu.
+- Draws a lightweight dynamic tray icon with the current 5-hour percentage.
 - Uses `codex app-server --listen stdio://` instead of scraping logs or reading auth files.
 - Read-only RPC allowlist: `initialize`, `initialized`, and `account/rateLimits/read`.
 - Degraded states for missing CLI, unsupported app-server, timeouts, malformed JSON, and unavailable buckets.

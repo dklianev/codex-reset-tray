@@ -7,3 +7,4 @@
 - Read-only Codex app-server integration.
 - Reset credit count display.
 - Core parser and redaction tests.
+- Refined cockpit-style dashboard and dynamic tray percentage display.

@@ -12,6 +12,12 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <Style x:Key="EyebrowText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource CopperBrush}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
     <Style x:Key="MutedText" TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{StaticResource MutedInkBrush}" />
         <Setter Property="FontSize" Value="12" />
@@ -20,6 +26,12 @@
     <Style x:Key="TinyText" TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{StaticResource SubtleInkBrush}" />
         <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <Style x:Key="MetricNumberText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="44" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="LineHeight" Value="46" />
     </Style>
 
     <Style x:Key="CardBorderStyle" TargetType="{x:Type Border}">
@@ -35,15 +47,15 @@
         <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="Padding" Value="9,5" />
     </Style>
 
     <Style x:Key="PrimaryButton" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Foreground" Value="#101418" />
+        <Setter Property="Foreground" Value="#0B0D10" />
         <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="13,8" />
+        <Setter Property="Padding" Value="14,9" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -64,27 +76,38 @@
                 <Setter Property="Opacity" Value="0.45" />
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#72E1C1" />
+                <Setter Property="Background" Value="#82EBC7" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="SecondaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource PrimaryButton}">
-        <Setter Property="Background" Value="{StaticResource PanelRaisedBrush}" />
+        <Setter Property="Background" Value="#1E231F" />
         <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#2A3240" />
+                <Setter Property="Background" Value="#2B332D" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style TargetType="{x:Type ProgressBar}">
-        <Setter Property="Height" Value="8" />
+        <Setter Property="Height" Value="9" />
         <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-        <Setter Property="Background" Value="#252C37" />
-        <Setter Property="BorderBrush" Value="{StaticResource StrokeBrush}" />
+        <Setter Property="Background" Value="#2A302B" />
         <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ProgressBar}">
+                    <Grid ClipToBounds="True">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" />
+                        <Decorator x:Name="PART_Indicator" HorizontalAlignment="Left">
+                            <Border Background="{TemplateBinding Foreground}" CornerRadius="4" />
+                        </Decorator>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>

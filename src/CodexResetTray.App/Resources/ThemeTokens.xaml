@@ -1,15 +1,17 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Color x:Key="InkColor">#F7F8FA</Color>
-    <Color x:Key="MutedInkColor">#9EA8B7</Color>
-    <Color x:Key="SubtleInkColor">#657386</Color>
-    <Color x:Key="ShellColor">#111419</Color>
-    <Color x:Key="PanelColor">#181D24</Color>
-    <Color x:Key="PanelRaisedColor">#202630</Color>
-    <Color x:Key="StrokeColor">#303846</Color>
-    <Color x:Key="AccentColor">#59D1AC</Color>
-    <Color x:Key="AccentBlueColor">#60A5FA</Color>
-    <Color x:Key="WarningColor">#FFB74D</Color>
+    <Color x:Key="InkColor">#F8FAF7</Color>
+    <Color x:Key="MutedInkColor">#AAB4AD</Color>
+    <Color x:Key="SubtleInkColor">#707B74</Color>
+    <Color x:Key="ShellColor">#0A0C0E</Color>
+    <Color x:Key="PanelColor">#151816</Color>
+    <Color x:Key="PanelRaisedColor">#20261F</Color>
+    <Color x:Key="StrokeColor">#323A34</Color>
+    <Color x:Key="AccentColor">#69E1B2</Color>
+    <Color x:Key="AccentBlueColor">#6CBEFF</Color>
+    <Color x:Key="WarningColor">#F5C15B</Color>
+    <Color x:Key="DangerColor">#FF6B6B</Color>
+    <Color x:Key="CopperColor">#D7A36E</Color>
 
     <SolidColorBrush x:Key="InkBrush" Color="{StaticResource InkColor}" />
     <SolidColorBrush x:Key="MutedInkBrush" Color="{StaticResource MutedInkColor}" />
@@ -21,4 +23,28 @@
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
     <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlueColor}" />
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
+    <SolidColorBrush x:Key="CopperBrush" Color="{StaticResource CopperColor}" />
+
+    <LinearGradientBrush x:Key="ShellGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#0A0C0E" Offset="0" />
+        <GradientStop Color="#10130F" Offset="0.55" />
+        <GradientStop Color="#17130F" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="HeroPanelBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#242B24" Offset="0" />
+        <GradientStop Color="#151816" Offset="0.5" />
+        <GradientStop Color="#211813" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="MetricWarmBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#21362C" Offset="0" />
+        <GradientStop Color="#151816" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="MetricCoolBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#172634" Offset="0" />
+        <GradientStop Color="#151816" Offset="1" />
+    </LinearGradientBrush>
 </ResourceDictionary>
