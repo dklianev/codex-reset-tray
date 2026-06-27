@@ -14,6 +14,7 @@ public partial class App : System.Windows.Application
     private MainWindow? _window;
     private TrayController? _tray;
     private DispatcherTimer? _refreshTimer;
+    private bool _ownsSingleInstanceMutex;
 
     protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
@@ -25,6 +26,8 @@ public partial class App : System.Windows.Application
             Shutdown();
             return;
         }
+
+        _ownsSingleInstanceMutex = true;
 
         var source = new CodexAppServerRateLimitSource();
         _dashboard = new DashboardViewModel(source);
@@ -50,7 +53,10 @@ public partial class App : System.Windows.Application
         _refreshTimer?.Stop();
         _tray?.Dispose();
         _dashboard?.Dispose();
-        _singleInstanceMutex?.ReleaseMutex();
+        if (_ownsSingleInstanceMutex)
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+        }
         _singleInstanceMutex?.Dispose();
 
         base.OnExit(e);

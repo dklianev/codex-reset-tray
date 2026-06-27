@@ -1,17 +1,18 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Color x:Key="InkColor">#F8FAF7</Color>
-    <Color x:Key="MutedInkColor">#AAB4AD</Color>
-    <Color x:Key="SubtleInkColor">#707B74</Color>
-    <Color x:Key="ShellColor">#0A0C0E</Color>
-    <Color x:Key="PanelColor">#151816</Color>
-    <Color x:Key="PanelRaisedColor">#20261F</Color>
-    <Color x:Key="StrokeColor">#323A34</Color>
-    <Color x:Key="AccentColor">#69E1B2</Color>
-    <Color x:Key="AccentBlueColor">#6CBEFF</Color>
-    <Color x:Key="WarningColor">#F5C15B</Color>
+    <Color x:Key="InkColor">#F7FAF8</Color>
+    <Color x:Key="MutedInkColor">#A7B2AD</Color>
+    <Color x:Key="SubtleInkColor">#738078</Color>
+    <Color x:Key="ShellColor">#0B0E11</Color>
+    <Color x:Key="PanelColor">#151A1E</Color>
+    <Color x:Key="PanelRaisedColor">#1B2227</Color>
+    <Color x:Key="StrokeColor">#2B353B</Color>
+    <Color x:Key="AccentColor">#5EE0AE</Color>
+    <Color x:Key="AccentBlueColor">#83BFFF</Color>
+    <Color x:Key="WarningColor">#F2B84B</Color>
     <Color x:Key="DangerColor">#FF6B6B</Color>
-    <Color x:Key="CopperColor">#D7A36E</Color>
+    <Color x:Key="CopperColor">#D1B16B</Color>
+    <Color x:Key="DeepLineColor">#243038</Color>
 
     <SolidColorBrush x:Key="InkBrush" Color="{StaticResource InkColor}" />
     <SolidColorBrush x:Key="MutedInkBrush" Color="{StaticResource MutedInkColor}" />
@@ -25,26 +26,39 @@
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
     <SolidColorBrush x:Key="CopperBrush" Color="{StaticResource CopperColor}" />
+    <SolidColorBrush x:Key="DeepLineBrush" Color="{StaticResource DeepLineColor}" />
 
     <LinearGradientBrush x:Key="ShellGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#0A0C0E" Offset="0" />
-        <GradientStop Color="#10130F" Offset="0.55" />
-        <GradientStop Color="#17130F" Offset="1" />
+        <GradientStop Color="#0B0E11" Offset="0" />
+        <GradientStop Color="#10151A" Offset="0.55" />
+        <GradientStop Color="#0C1114" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="HeroPanelBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#242B24" Offset="0" />
-        <GradientStop Color="#151816" Offset="0.5" />
-        <GradientStop Color="#211813" Offset="1" />
+        <GradientStop Color="#1F2A2D" Offset="0" />
+        <GradientStop Color="#151A1E" Offset="0.55" />
+        <GradientStop Color="#11171A" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="MetricWarmBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#21362C" Offset="0" />
-        <GradientStop Color="#151816" Offset="1" />
+        <GradientStop Color="#1B3029" Offset="0" />
+        <GradientStop Color="#151A1E" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="MetricCoolBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#172634" Offset="0" />
-        <GradientStop Color="#151816" Offset="1" />
+        <GradientStop Color="#182938" Offset="0" />
+        <GradientStop Color="#151A1E" Offset="1" />
     </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="AccentRailBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#69E1B2" Offset="0" />
+        <GradientStop Color="#6CBEFF" Offset="0.65" />
+        <GradientStop Color="#D7A36E" Offset="1" />
+    </LinearGradientBrush>
+
+    <DropShadowEffect x:Key="PanelShadowEffect"
+                      BlurRadius="22"
+                      ShadowDepth="0"
+                      Opacity="0.24"
+                      Color="#000000" />
 </ResourceDictionary>

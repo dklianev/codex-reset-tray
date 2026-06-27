@@ -1,40 +1,26 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace CodexResetTray.App.Services;
 
 public static class TrayIconFactory
 {
+    private const int IconSize = 64;
+
     public static Icon Create(int? primaryPercent, int? weeklyPercent)
     {
-        using var bitmap = new Bitmap(64, 64);
+        using var bitmap = new Bitmap(IconSize, IconSize);
         using var graphics = Graphics.FromImage(bitmap);
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.CompositingQuality = CompositingQuality.HighQuality;
+        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         graphics.Clear(Color.Transparent);
 
-        using var shellBrush = new SolidBrush(Color.FromArgb(255, 11, 13, 16));
-        using var strokePen = new Pen(Color.FromArgb(255, 54, 61, 67), 3);
-        using var primaryBrush = new SolidBrush(Color.FromArgb(255, 105, 225, 178));
-        using var weeklyBrush = new SolidBrush(Color.FromArgb(255, 108, 190, 255));
-        using var mutedBrush = new SolidBrush(Color.FromArgb(255, 125, 137, 148));
-        using var textBrush = new SolidBrush(Color.FromArgb(255, 246, 248, 250));
-
-        using var outer = RoundedRectangle(new RectangleF(4, 4, 56, 56), 14);
-        graphics.FillPath(shellBrush, outer);
-        graphics.DrawPath(strokePen, outer);
-
-        DrawUsageRail(graphics, 10, 48, 44, primaryPercent, primaryBrush, mutedBrush);
-        DrawUsageRail(graphics, 10, 54, 44, weeklyPercent, weeklyBrush, mutedBrush);
-
-        var label = primaryPercent is { } primary
-            ? primary.ToString(CultureInfo.InvariantCulture)
-            : "--";
-        using var font = new Font("Segoe UI", label.Length > 2 ? 21 : 25, FontStyle.Bold, GraphicsUnit.Pixel);
-        var textSize = graphics.MeasureString(label, font);
-        graphics.DrawString(label, font, textBrush, 32 - (textSize.Width / 2), 18 - (textSize.Height / 2));
+        DrawProgressRing(graphics, primaryPercent);
+        DrawCodexGapMark(graphics, primaryPercent);
+        DrawWeeklyAccent(graphics, weeklyPercent);
 
         var handle = bitmap.GetHicon();
         try
@@ -48,34 +34,76 @@ public static class TrayIconFactory
         }
     }
 
-    private static void DrawUsageRail(Graphics graphics, int x, int y, int width, int? percent, Brush activeBrush, Brush mutedBrush)
+    private static void DrawProgressRing(Graphics graphics, int? primaryPercent)
     {
-        using var mutedPath = RoundedRectangle(new RectangleF(x, y, width, 3), 2);
-        graphics.FillPath(mutedBrush, mutedPath);
-
-        if (percent is not { } value)
+        var ringRect = new RectangleF(9, 9, 46, 46);
+        using var underStroke = new Pen(Color.FromArgb(220, 8, 10, 12), 8.2f)
         {
-            return;
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+        using var track = new Pen(Color.FromArgb(205, 76, 86, 92), 5.8f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+        using var progress = new Pen(PickPrimaryColor(primaryPercent), 5.8f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+
+        graphics.DrawArc(underStroke, ringRect, 130, 282);
+        graphics.DrawArc(track, ringRect, 130, 282);
+        if (primaryPercent is { } primary)
+        {
+            graphics.DrawArc(progress, ringRect, 130, Math.Min(282, Sweep(primary) * 0.783f));
         }
-
-        var activeWidth = Math.Max(3, width * Math.Clamp(value, 0, 100) / 100);
-        using var activePath = RoundedRectangle(new RectangleF(x, y, activeWidth, 3), 2);
-        graphics.FillPath(activeBrush, activePath);
     }
 
-    private static GraphicsPath RoundedRectangle(RectangleF bounds, float radius)
+    private static void DrawCodexGapMark(Graphics graphics, int? primaryPercent)
     {
-        var path = new GraphicsPath();
-        var diameter = radius * 2;
+        var markColor = primaryPercent.HasValue
+            ? Color.FromArgb(255, 246, 249, 247)
+            : Color.FromArgb(255, 126, 137, 130);
 
-        path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
-        path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
-        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
-        path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-
-        return path;
+        using var markPen = new Pen(markColor, 4.2f)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round
+        };
+        graphics.DrawLine(markPen, 31, 21, 31, 43);
+        graphics.DrawLine(markPen, 31, 32, 41, 32);
     }
+
+    private static void DrawWeeklyAccent(Graphics graphics, int? weeklyPercent)
+    {
+        var dotColor = weeklyPercent.HasValue
+            ? Color.FromArgb(255, 108, 190, 255)
+            : Color.FromArgb(255, 126, 137, 130);
+
+        using var dotBrush = new SolidBrush(dotColor);
+        using var dotBorder = new Pen(Color.FromArgb(255, 10, 12, 14), 2);
+        var diameter = weeklyPercent switch
+        {
+            >= 90 => 11,
+            >= 70 => 9,
+            null => 7,
+            _ => 8
+        };
+        graphics.FillEllipse(dotBrush, 45, 45, diameter, diameter);
+        graphics.DrawEllipse(dotBorder, 45, 45, diameter, diameter);
+    }
+
+    private static float Sweep(int percent) => Math.Clamp(percent, 0, 100) * 3.6f;
+
+    private static Color PickPrimaryColor(int? primaryPercent) => primaryPercent switch
+    {
+        >= 100 => Color.FromArgb(255, 255, 107, 107),
+        >= 90 => Color.FromArgb(255, 245, 193, 91),
+        >= 70 => Color.FromArgb(255, 108, 190, 255),
+        _ => Color.FromArgb(255, 105, 225, 178)
+    };
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
