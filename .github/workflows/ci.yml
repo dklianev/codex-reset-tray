@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   build:
@@ -27,3 +27,16 @@ jobs:
 
       - name: Test
         run: dotnet test .\CodexResetTray.slnx -c Release --no-build
+
+      - name: Test publish script failure handling
+        run: pwsh -NoProfile -File .\tests\packaging\Verify-PublishNativeFailure.ps1
+
+      - name: Package portable app
+        run: pwsh -NoProfile -File .\packaging\publish.ps1
+
+      - name: Upload portable app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodexResetTray-win-x64
+          path: artifacts\release\CodexResetTray-win-x64.zip
+          if-no-files-found: error

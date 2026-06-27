@@ -8,8 +8,12 @@ namespace CodexResetTray.App;
 public partial class App : System.Windows.Application
 {
     private const string MutexName = "CodexResetTray.SingleInstance";
+    private const string ActivationEventName = "CodexResetTray.Activate";
 
     private Mutex? _singleInstanceMutex;
+    private EventWaitHandle? _activationEvent;
+    private RegisteredWaitHandle? _activationWait;
+    private readonly CancellationTokenSource _shutdown = new();
     private DashboardViewModel? _dashboard;
     private MainWindow? _window;
     private TrayController? _tray;
@@ -23,6 +27,7 @@ public partial class App : System.Windows.Application
         _singleInstanceMutex = new Mutex(initiallyOwned: true, MutexName, out var isOnlyInstance);
         if (!isOnlyInstance)
         {
+            SignalExistingInstance();
             Shutdown();
             return;
         }
@@ -30,10 +35,11 @@ public partial class App : System.Windows.Application
         _ownsSingleInstanceMutex = true;
 
         var source = new CodexAppServerRateLimitSource();
-        _dashboard = new DashboardViewModel(source);
+        _dashboard = new DashboardViewModel(source, _shutdown.Token);
         _window = new MainWindow(_dashboard);
         MainWindow = _window;
         _dashboard.ExitRequested += OnExitRequested;
+        RegisterActivationEvent();
 
         _tray = new TrayController(_window, _dashboard);
         _tray.Initialize();
@@ -42,11 +48,37 @@ public partial class App : System.Windows.Application
         {
             Interval = TimeSpan.FromMinutes(10)
         };
-        _refreshTimer.Tick += async (_, _) => await _dashboard.RefreshAsync(isSilent: true);
+        _refreshTimer.Tick += async (_, _) => await _dashboard.RefreshAsync(isSilent: true, cancellationToken: _shutdown.Token);
         _refreshTimer.Start();
 
         _window.Show();
-        await _dashboard.RefreshAsync();
+        await _dashboard.RefreshAsync(cancellationToken: _shutdown.Token);
+    }
+
+    private void RegisterActivationEvent()
+    {
+        _activationEvent = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, ActivationEventName);
+        _activationWait = ThreadPool.RegisterWaitForSingleObject(
+            _activationEvent,
+            (_, _) => Dispatcher.BeginInvoke(() => _window?.ShowDashboard()),
+            state: null,
+            timeout: Timeout.InfiniteTimeSpan,
+            executeOnlyOnce: false);
+    }
+
+    private static void SignalExistingInstance()
+    {
+        try
+        {
+            using var activationEvent = EventWaitHandle.OpenExisting(ActivationEventName);
+            activationEvent.Set();
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private void OnExitRequested(object? sender, EventArgs e)
@@ -57,6 +89,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
+        _shutdown.Cancel();
         _refreshTimer?.Stop();
         if (_dashboard is not null)
         {
@@ -64,6 +97,9 @@ public partial class App : System.Windows.Application
         }
         _tray?.Dispose();
         _dashboard?.Dispose();
+        _activationWait?.Unregister(null);
+        _activationEvent?.Dispose();
+        _shutdown.Dispose();
         if (_ownsSingleInstanceMutex)
         {
             _singleInstanceMutex?.ReleaseMutex();

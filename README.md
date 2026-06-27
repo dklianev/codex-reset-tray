@@ -40,6 +40,7 @@ The app opens a small dashboard and adds a tray icon. Closing the dashboard hide
 ```
 
 The script publishes a self-contained `win-x64` build and creates a zip under `artifacts\release`.
+Maintainers can run the full checked release flow with `pwsh -NoProfile -File .\packaging\verify-release.ps1`.
 
 ## Architecture
 

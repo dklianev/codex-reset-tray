@@ -6,9 +6,12 @@ using CodexResetTray.Core.Security;
 
 namespace CodexResetTray.App.Services;
 
-public sealed class CodexAppServerRateLimitSource : IRateLimitSource
+public sealed class CodexAppServerRateLimitSource : IRateLimitSource, IDisposable
 {
     private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(30);
+    private readonly object _processLock = new();
+    private Process? _activeProcess;
+    private bool _isDisposed;
 
     public async Task<RateLimitDashboardSnapshot> ReadAsync(CancellationToken cancellationToken)
     {
@@ -16,6 +19,7 @@ public sealed class CodexAppServerRateLimitSource : IRateLimitSource
         timeout.CancelAfter(ReadTimeout);
 
         using var process = StartProcess();
+        RegisterProcess(process);
         var stderrTask = ReadStderrAsync(process, timeout.Token);
 
         try
@@ -70,6 +74,32 @@ public sealed class CodexAppServerRateLimitSource : IRateLimitSource
         finally
         {
             await StopProcessAsync(process);
+            ClearProcess(process);
+        }
+    }
+
+    private void RegisterProcess(Process process)
+    {
+        lock (_processLock)
+        {
+            if (_isDisposed)
+            {
+                KillProcessTree(process);
+                throw new ObjectDisposedException(nameof(CodexAppServerRateLimitSource));
+            }
+
+            _activeProcess = process;
+        }
+    }
+
+    private void ClearProcess(Process process)
+    {
+        lock (_processLock)
+        {
+            if (ReferenceEquals(_activeProcess, process))
+            {
+                _activeProcess = null;
+            }
         }
     }
 
@@ -218,11 +248,42 @@ public sealed class CodexAppServerRateLimitSource : IRateLimitSource
         {
             if (!process.HasExited)
             {
+                KillProcessTree(process);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
                 process.Kill(entireProcessTree: true);
             }
         }
         catch (InvalidOperationException)
         {
+        }
+    }
+
+    public void Dispose()
+    {
+        Process? process;
+
+        lock (_processLock)
+        {
+            _isDisposed = true;
+            process = _activeProcess;
+            _activeProcess = null;
+        }
+
+        if (process is not null)
+        {
+            KillProcessTree(process);
         }
     }
 }

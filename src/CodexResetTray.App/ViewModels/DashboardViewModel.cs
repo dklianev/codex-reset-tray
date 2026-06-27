@@ -20,6 +20,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IRateLimitSource _source;
     private readonly AsyncRelayCommand _refreshCommand;
+    private readonly CancellationToken _shutdownToken;
     private bool _isBusy;
     private string _statusTitle = "Connecting";
     private string _statusDetail = "Reading Codex rate-limit windows";
@@ -46,9 +47,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private int? _trayWeeklyPercent;
     private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
-    public DashboardViewModel(IRateLimitSource source)
+    public DashboardViewModel(IRateLimitSource source, CancellationToken shutdownToken = default)
     {
         _source = source;
+        _shutdownToken = shutdownToken;
         _refreshCommand = new AsyncRelayCommand(() => RefreshAsync(), () => !IsBusy);
         OpenCodexDocsCommand = new AsyncRelayCommand(OpenCodexDocsAsync);
         ExitCommand = new AsyncRelayCommand(() =>
@@ -228,7 +230,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _statusBrush, value);
     }
 
-    public async Task RefreshAsync(bool isSilent = false)
+    public async Task RefreshAsync(bool isSilent = false, CancellationToken cancellationToken = default)
     {
         if (IsBusy)
         {
@@ -246,12 +248,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
-            var snapshot = await _source.ReadAsync(timeout.Token);
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                timeout.Token,
+                _shutdownToken,
+                cancellationToken);
+            var snapshot = await _source.ReadAsync(linkedCancellation.Token);
             ApplySnapshot(snapshot);
+        }
+        catch (OperationCanceledException) when (_shutdownToken.IsCancellationRequested || cancellationToken.IsCancellationRequested)
+        {
         }
         catch (OperationCanceledException)
         {
             ApplyError(new TimeoutException("Codex app-server did not respond in time."));
+        }
+        catch (Exception) when (_shutdownToken.IsCancellationRequested || cancellationToken.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
@@ -478,5 +490,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
+        if (_source is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 }

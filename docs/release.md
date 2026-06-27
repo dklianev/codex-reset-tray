@@ -3,9 +3,7 @@
 ## Local Checks
 
 ```powershell
-dotnet test .\CodexResetTray.slnx
-dotnet build .\CodexResetTray.slnx -c Release
-.\packaging\publish.ps1
+pwsh -NoProfile -File .\packaging\verify-release.ps1
 ```
 
 ## Artifact
@@ -19,6 +17,8 @@ artifacts/
   release/
     CodexResetTray-win-x64.zip
 ```
+
+`packaging\publish.ps1` publishes into a fresh staging folder, checks native command exit codes, and only replaces the previous publish output and release zip after a new archive is complete. It refuses to continue if the previous published `CodexResetTray.exe` is still running from that folder. The final line prints the exact zip path to upload.
 
 ## Notes For Users
 
@@ -34,4 +34,4 @@ Before a tagged release:
 1. Update `Version` in `src/CodexResetTray.App/CodexResetTray.App.csproj`.
 2. Update `CHANGELOG.md`.
 3. Run local checks.
-4. Create a GitHub release with the zip from `artifacts/release`.
+4. Create a GitHub release with `artifacts\release\CodexResetTray-win-x64.zip`.
