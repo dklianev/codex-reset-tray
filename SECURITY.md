@@ -12,10 +12,12 @@ Open a private security advisory on GitHub if the repository has advisories enab
 
 Codex Reset Tray is read-only by design:
 
-- No `.codex/auth.json` reads.
+- No `.codex/auth.json` reads unless the user explicitly enables experimental reset-credit expiry lookup.
 - No reset-credit consume methods.
 - No generic app-server RPC console.
 - No telemetry.
 - Token-shaped errors are redacted before display.
 
-Changes that add new Codex RPC methods should include tests proving they are read-only and should document the new data surface.
+Experimental reset-credit expiry lookup is metadata-only. It reads the local Codex auth file at refresh time, sends one allowlisted HTTPS request, does not persist credentials or raw responses, and never overrides the official app-server reset credit count.
+
+Changes that add new Codex RPC methods or new authenticated endpoints should include tests proving they are read-only and should document the new data surface.

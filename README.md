@@ -1,6 +1,6 @@
 # Codex Reset Tray
 
-Codex Reset Tray is a lightweight Windows tray app that shows your Codex rate-limit reset windows without reading `.codex/auth.json`.
+Codex Reset Tray is a lightweight Windows tray app that shows your Codex rate-limit reset windows without reading `.codex/auth.json` by default.
 
 It uses the official Codex app-server protocol, asks only for `account/rateLimits/read`, and displays the two windows people care about most: the 5-hour reset and the weekly reset.
 
@@ -11,10 +11,12 @@ It uses the official Codex app-server protocol, asks only for `account/rateLimit
 - Shows compact live 5-hour and weekly remaining percentages in the tray tooltip, with exact reset times in the tray context menu.
 - Global tray-menu notification mute, plus optional low-remaining alerts with Windows notifications and an in-app notification center.
 - Detects newly stacked manual reset credits and direct rate-limit resets that happen before the scheduled reset time.
+- Optional experimental reset-credit expiry lookup. When enabled, the app reads the local Codex auth file only for a short metadata request and shows when available manual reset credits expire.
+- Smart auto-refresh: 5 minutes normally, 1 minute near a reset, and 30 seconds when a reset is imminent.
 - Optional per-user "Start with Windows" setting in the tray menu for tray-first startup.
 - Draws a crisp, multi-resolution dynamic tray icon: outer 5-hour signal plus inner weekly signal, coloured by state (fresh, watch, near, limited), with a compact 16 px rendering for taskbar legibility.
 - Ships a branded multi-resolution application/window icon, generated reproducibly from `packaging/generate-app-icon.ps1`.
-- Uses `codex app-server --listen stdio://` instead of scraping logs or reading auth files.
+- Uses `codex app-server --listen stdio://` as the authoritative source instead of scraping logs.
 - Read-only RPC allowlist: `initialize`, `initialized`, and `account/rateLimits/read`.
 - Degraded states for missing CLI, unsupported app-server, timeouts, malformed JSON, and unavailable buckets.
 - No telemetry, no cloud backend, no account tokens stored by this app.
@@ -66,13 +68,13 @@ The app intentionally avoids Electron, browser runtimes, local databases, and ba
 
 ## Privacy
 
-Codex Reset Tray does not read `C:\Users\<you>\.codex\auth.json`. Treat that file like a password vault. The app reads rate limits through Codex's app-server protocol and redacts token-shaped data from error text before showing it.
+Codex Reset Tray does not read `C:\Users\<you>\.codex\auth.json` unless you explicitly enable the experimental reset-credit expiry lookup. Treat that file like a password vault. The app reads rate limits through Codex's app-server protocol, uses the optional expiry endpoint only as metadata, and redacts token-shaped data from error text before showing it.
 
 More detail: [PRIVACY.md](PRIVACY.md)
 
 ## Safety Model
 
-The app must never consume reset credits. It has no UI button for that behavior and no generic RPC sender. Tests assert that startup requests do not contain reset, auth, logout, or consume methods.
+The app must never consume reset credits. It has no UI button for that behavior and no generic RPC sender. Tests assert that startup requests do not contain reset, auth, logout, or consume methods. The experimental expiry endpoint never overrides the official app-server reset credit count.
 
 More detail: [docs/rate-limit-source.md](docs/rate-limit-source.md)
 

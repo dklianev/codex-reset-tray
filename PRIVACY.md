@@ -7,17 +7,21 @@ Codex Reset Tray is designed to show rate-limit reset times with the smallest pr
 - It starts `codex app-server --listen stdio://`.
 - It sends `initialize`, `initialized`, and `account/rateLimits/read`.
 - It reads the returned rate-limit buckets and reset credit count.
+- If the experimental reset-credit expiry lookup is enabled, it reads `tokens.access_token` and `tokens.account_id` from the local Codex auth file for one HTTPS metadata request to ChatGPT.
 
 ## What It Does Not Read
 
-- It does not open `.codex/auth.json`.
+- It does not open `.codex/auth.json` unless the experimental reset-credit expiry lookup is enabled.
 - It does not read Codex session logs.
 - It does not collect prompts, outputs, repository contents, or file paths beyond sanitized error messages.
 - It does not send telemetry to this project or to any third-party service.
+- It does not persist access tokens, account IDs, or raw expiry endpoint responses.
 
 ## Local Process Behavior
 
 During refresh, the app starts a short Codex app-server session, reads the current rate-limit snapshot, then closes the process. The WPF tray app remains running between refreshes.
+
+When reset-credit expiry lookup is enabled, the app makes a short `GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits` request after the official app-server snapshot succeeds. If that request fails, the dashboard keeps the official app-server data and marks expiry metadata unavailable.
 
 ## Error Redaction
 

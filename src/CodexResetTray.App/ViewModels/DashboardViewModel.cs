@@ -23,6 +23,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private readonly AsyncRelayCommand _toggleNotificationsCommand;
     private readonly CancellationToken _shutdownToken;
     private readonly HashSet<string> _lowAlertActiveKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _resetCreditExpiryAlertActiveKeys = new(StringComparer.OrdinalIgnoreCase);
     private RateLimitDashboardSnapshot? _previousSnapshot;
     private bool _isBusy;
     private string _statusTitle = "Connecting";
@@ -35,6 +36,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _trayMenuFiveHourText = "5-hour: checking";
     private string _trayMenuWeeklyText = "Weekly: checking";
     private string _trayMenuCreditsText = "Reset credits: checking";
+    private string _trayMenuCreditExpiryText = "Reset expiry: lookup off";
+    private string _resetCreditExpiryLookupText = "Expiry lookup: off";
+    private string _resetCreditExpiryText = "Credit expiry: lookup off";
+    private string _resetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
+    private string _autoRefreshText = "Smart refresh: 5m";
     private string _mainLimitName = "Codex";
     private string _primaryRemainingText = "--";
     private string _weeklyRemainingText = "--";
@@ -63,6 +69,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private bool _hasNotifications;
     private bool _isNotificationsOpen;
     private bool _notificationsEnabled = true;
+    private bool _resetCreditExpiryLookupEnabled;
     private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
     public DashboardViewModel(
@@ -95,9 +102,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
     public event EventHandler<TrayNotification>? NotificationRequested;
 
+    public event EventHandler? SnapshotApplied;
+
     public ObservableCollection<BucketViewModel> Buckets { get; } = new();
 
     public ObservableCollection<NotificationViewModel> Notifications { get; } = new();
+
+    public RateLimitDashboardSnapshot? LastSuccessfulSnapshot { get; private set; }
 
     public ICommand RefreshCommand => _refreshCommand;
 
@@ -177,6 +188,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _trayMenuCreditsText;
         private set => SetProperty(ref _trayMenuCreditsText, value);
+    }
+
+    public string TrayMenuCreditExpiryText
+    {
+        get => _trayMenuCreditExpiryText;
+        private set => SetProperty(ref _trayMenuCreditExpiryText, value);
     }
 
     public int? TrayPrimaryPercent
@@ -281,10 +298,40 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _notificationsEnabledText, value);
     }
 
+    public string ResetCreditExpiryLookupText
+    {
+        get => _resetCreditExpiryLookupText;
+        private set => SetProperty(ref _resetCreditExpiryLookupText, value);
+    }
+
+    public string ResetCreditExpiryText
+    {
+        get => _resetCreditExpiryText;
+        private set => SetProperty(ref _resetCreditExpiryText, value);
+    }
+
+    public string ResetCreditExpiryDetailText
+    {
+        get => _resetCreditExpiryDetailText;
+        private set => SetProperty(ref _resetCreditExpiryDetailText, value);
+    }
+
+    public string AutoRefreshText
+    {
+        get => _autoRefreshText;
+        private set => SetProperty(ref _autoRefreshText, value);
+    }
+
     public bool NotificationsEnabled
     {
         get => _notificationsEnabled;
         set => SetNotificationsEnabled(value);
+    }
+
+    public bool ResetCreditExpiryLookupEnabled
+    {
+        get => _resetCreditExpiryLookupEnabled;
+        set => SetResetCreditExpiryLookupEnabled(value);
     }
 
     public int UnreadNotificationCount
@@ -388,6 +435,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             ApplySnapshot(snapshot);
             EvaluateNotifications(snapshot);
             _previousSnapshot = snapshot;
+            SnapshotApplied?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException) when (_shutdownToken.IsCancellationRequested || cancellationToken.IsCancellationRequested)
         {
@@ -411,8 +459,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public void SetAutoRefreshCadence(TimeSpan interval)
+    {
+        AutoRefreshText = $"Smart refresh: {FormatCadence(interval)}";
+    }
+
     private void ApplySnapshot(RateLimitDashboardSnapshot snapshot)
     {
+        LastSuccessfulSnapshot = snapshot;
         Buckets.Clear();
         foreach (var bucket in snapshot.Buckets)
         {
@@ -445,9 +499,43 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         ResetCreditsText = snapshot.ResetCreditsAvailable is { } credits
             ? $"Reset credits: {credits}"
             : "Reset credits: unavailable";
+        ApplyResetCreditExpiry(snapshot);
         LastUpdatedText = $"Updated {ResetTimeFormatter.FormatExact(snapshot.FetchedAt, TimeZoneInfo.Local)}";
         ErrorText = string.Empty;
         ApplyHeroMetrics(snapshot);
+    }
+
+    private void ApplyResetCreditExpiry(RateLimitDashboardSnapshot snapshot)
+    {
+        if (!ResetCreditExpiryLookupEnabled)
+        {
+            ResetCreditExpiryText = "Credit expiry: lookup off";
+            ResetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
+            TrayMenuCreditExpiryText = "Reset expiry: lookup off";
+            return;
+        }
+
+        if (snapshot.ResetCreditDetails is not { } report)
+        {
+            ResetCreditExpiryText = "Credit expiry: unavailable";
+            ResetCreditExpiryDetailText = "Experimental endpoint unavailable; official credit count is still shown.";
+            TrayMenuCreditExpiryText = "Reset expiry: unavailable";
+            return;
+        }
+
+        var trackedCredits = report.Credits.Count;
+        ResetCreditExpiryText = $"Credit expiry: {trackedCredits} tracked";
+        if (report.NextExpiringCredit(snapshot.FetchedAt) is { } next)
+        {
+            var relative = ResetTimeFormatter.FormatRelative(next.ExpiresAt, snapshot.FetchedAt);
+            var exact = ResetTimeFormatter.FormatExact(next.ExpiresAt, TimeZoneInfo.Local);
+            ResetCreditExpiryDetailText = $"Next expires in {relative} ({exact} local).";
+            TrayMenuCreditExpiryText = $"Reset expiry: {trackedCredits} tracked | next {relative} ({exact} local)";
+            return;
+        }
+
+        ResetCreditExpiryDetailText = "No available reset-credit expiry dates were returned.";
+        TrayMenuCreditExpiryText = $"Reset expiry: {trackedCredits} tracked | no active expiry";
     }
 
     private void ApplyHeroMetrics(RateLimitDashboardSnapshot snapshot)
@@ -543,11 +631,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         ErrorText = SecretRedactor.Redact(ex.Message);
         LastUpdatedText = $"Failed {ResetTimeFormatter.FormatExact(DateTimeOffset.Now, TimeZoneInfo.Local)}";
         ResetCreditsText = "Reset credits: unavailable";
+        ResetCreditExpiryText = ResetCreditExpiryLookupEnabled ? "Credit expiry: unavailable" : "Credit expiry: lookup off";
+        ResetCreditExpiryDetailText = ResetCreditExpiryLookupEnabled
+            ? "Refresh failed before expiry metadata could be checked."
+            : "Enable experimental lookup to track when reset credits expire.";
         TrayTooltip = "Codex Reset Tray: refresh failed";
         TrayStatusText = "5h -- | W -- | refresh failed";
         TrayMenuFiveHourText = "5-hour: unavailable";
         TrayMenuWeeklyText = "Weekly: unavailable";
         TrayMenuCreditsText = "Reset credits: unavailable";
+        TrayMenuCreditExpiryText = ResetCreditExpiryLookupEnabled
+            ? "Reset expiry: unavailable"
+            : "Reset expiry: lookup off";
         TrayPrimaryPercent = null;
         TrayWeeklyPercent = null;
         MainLimitName = "Codex";
@@ -585,6 +680,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private static string FormatResetExact(DateTimeOffset? resetAt) =>
         resetAt is { } value ? ResetTimeFormatter.FormatExact(value, TimeZoneInfo.Local) : string.Empty;
 
+    private static string FormatCadence(TimeSpan interval)
+    {
+        if (interval.TotalMinutes >= 1)
+        {
+            return $"{(int)interval.TotalMinutes}m";
+        }
+
+        return $"{(int)interval.TotalSeconds}s";
+    }
+
     private static string BuildSignalCaption(int? primaryPercent, int? weeklyPercent, long? credits)
     {
         var loadText = (primaryPercent, weeklyPercent) switch
@@ -618,15 +723,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         {
             _lowRemainingAlertThresholdPercent = _alertSettingsService?.LowRemainingThresholdPercent;
             _notificationsEnabled = _alertSettingsService?.NotificationsEnabled ?? true;
+            _resetCreditExpiryLookupEnabled = _alertSettingsService?.ResetCreditExpiryLookupEnabled ?? false;
             LowRemainingAlertThresholdText = FormatLowRemainingAlertThresholdText(_lowRemainingAlertThresholdPercent);
             NotificationsEnabledText = FormatNotificationsEnabledText(_notificationsEnabled);
+            ResetCreditExpiryLookupText = FormatResetCreditExpiryLookupText(_resetCreditExpiryLookupEnabled);
+            ApplyResetCreditExpiry(_previousSnapshot ?? LastSuccessfulSnapshot ?? RateLimitDashboardSnapshot.Empty(DateTimeOffset.Now));
         }
         catch (Exception ex)
         {
             _lowRemainingAlertThresholdPercent = null;
             _notificationsEnabled = true;
+            _resetCreditExpiryLookupEnabled = false;
             LowRemainingAlertThresholdText = "Low alerts: unavailable";
             NotificationsEnabledText = "Notifications: unavailable";
+            ResetCreditExpiryLookupText = "Expiry lookup: unavailable";
+            ResetCreditExpiryText = "Credit expiry: unavailable";
+            ResetCreditExpiryDetailText = "Could not read local settings.";
             ErrorText = SecretRedactor.Redact($"Could not read alert settings: {ex.Message}");
         }
     }
@@ -693,6 +805,41 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private static string FormatNotificationsEnabledText(bool enabled) =>
         enabled ? "Notifications: on" : "Notifications: off";
 
+    private void SetResetCreditExpiryLookupEnabled(bool value)
+    {
+        if (value == _resetCreditExpiryLookupEnabled)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_alertSettingsService is not null)
+            {
+                _alertSettingsService.ResetCreditExpiryLookupEnabled = value;
+            }
+
+            if (SetProperty(ref _resetCreditExpiryLookupEnabled, value, nameof(ResetCreditExpiryLookupEnabled)))
+            {
+                ResetCreditExpiryLookupText = FormatResetCreditExpiryLookupText(value);
+                if (!value)
+                {
+                    _resetCreditExpiryAlertActiveKeys.Clear();
+                }
+
+                ApplyResetCreditExpiry(_previousSnapshot ?? LastSuccessfulSnapshot ?? RateLimitDashboardSnapshot.Empty(DateTimeOffset.Now));
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorText = SecretRedactor.Redact($"Could not update expiry lookup setting: {ex.Message}");
+            OnPropertyChanged(nameof(ResetCreditExpiryLookupEnabled));
+        }
+    }
+
+    private static string FormatResetCreditExpiryLookupText(bool enabled) =>
+        enabled ? "Expiry lookup: on" : "Expiry lookup: off";
+
     private Task MarkNotificationsReadAsync()
     {
         MarkNotificationsRead();
@@ -726,19 +873,37 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         if (previous is null)
         {
             ReseedLowAlertState(current);
+            ReseedResetCreditExpiryAlertState(current);
             return;
         }
 
         var lowMessages = EvaluateLowRemainingAlerts(previous, current);
+        var expiryMessages = EvaluateResetCreditExpiryAlerts(current);
         var infoMessages = EvaluateResetAlerts(previous, current);
 
         TrayNotification? notification = null;
-        if (lowMessages.Count > 0)
+        if (lowMessages.Count > 0 && expiryMessages.Count > 0)
+        {
+            notification = new TrayNotification(
+                TrayNotificationLevel.Warning,
+                "Codex attention needed",
+                string.Join("; ", lowMessages.Concat(expiryMessages)),
+                current.FetchedAt);
+        }
+        else if (lowMessages.Count > 0)
         {
             notification = new TrayNotification(
                 TrayNotificationLevel.Warning,
                 "Low Codex capacity",
                 string.Join("; ", lowMessages),
+                current.FetchedAt);
+        }
+        else if (expiryMessages.Count > 0)
+        {
+            notification = new TrayNotification(
+                TrayNotificationLevel.Warning,
+                "Reset credit expiring soon",
+                string.Join("; ", expiryMessages),
                 current.FetchedAt);
         }
         else if (infoMessages.Count == 1)
@@ -793,6 +958,46 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             else
             {
                 _lowAlertActiveKeys.Add(currentWindow.Key);
+            }
+        }
+
+        return messages;
+    }
+
+    private List<string> EvaluateResetCreditExpiryAlerts(RateLimitDashboardSnapshot current)
+    {
+        if (!ResetCreditExpiryLookupEnabled || current.ResetCreditDetails is not { } report)
+        {
+            _resetCreditExpiryAlertActiveKeys.Clear();
+            return new List<string>();
+        }
+
+        var currentKeys = report.Credits.Select(CreateResetCreditAlertKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _resetCreditExpiryAlertActiveKeys.RemoveWhere(key => !currentKeys.Contains(key));
+
+        var threshold = TimeSpan.FromHours(_alertSettingsService?.ResetCreditExpiryWarningHours ?? 48);
+        var messages = new List<string>();
+        foreach (var credit in report.Credits)
+        {
+            var remaining = credit.ExpiresAt - current.FetchedAt;
+            var key = CreateResetCreditAlertKey(credit);
+            if (remaining <= TimeSpan.Zero)
+            {
+                _resetCreditExpiryAlertActiveKeys.Remove(key);
+                continue;
+            }
+
+            if (remaining > threshold)
+            {
+                _resetCreditExpiryAlertActiveKeys.Remove(key);
+                continue;
+            }
+
+            if (_resetCreditExpiryAlertActiveKeys.Add(key))
+            {
+                var relative = ResetTimeFormatter.FormatRelative(credit.ExpiresAt, current.FetchedAt);
+                var exact = ResetTimeFormatter.FormatExact(credit.ExpiresAt, TimeZoneInfo.Local);
+                messages.Add($"1 reset credit expires in {relative} ({exact} local)");
             }
         }
 
@@ -885,6 +1090,28 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             }
         }
     }
+
+    private void ReseedResetCreditExpiryAlertState(RateLimitDashboardSnapshot snapshot)
+    {
+        _resetCreditExpiryAlertActiveKeys.Clear();
+        if (!ResetCreditExpiryLookupEnabled || snapshot.ResetCreditDetails is not { } report)
+        {
+            return;
+        }
+
+        var threshold = TimeSpan.FromHours(_alertSettingsService?.ResetCreditExpiryWarningHours ?? 48);
+        foreach (var credit in report.Credits)
+        {
+            var remaining = credit.ExpiresAt - snapshot.FetchedAt;
+            if (remaining > TimeSpan.Zero && remaining <= threshold)
+            {
+                _resetCreditExpiryAlertActiveKeys.Add(CreateResetCreditAlertKey(credit));
+            }
+        }
+    }
+
+    private static string CreateResetCreditAlertKey(ResetCreditInfo credit) =>
+        $"{credit.ResetType}|{credit.GrantedAt.UtcDateTime:O}|{credit.ExpiresAt.UtcDateTime:O}";
 
     private void AddNotification(TrayNotification notification)
     {

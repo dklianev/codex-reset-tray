@@ -14,7 +14,10 @@ public sealed class TrayController : IDisposable
     private Forms.ToolStripMenuItem? _fiveHourItem;
     private Forms.ToolStripMenuItem? _weeklyItem;
     private Forms.ToolStripMenuItem? _creditsItem;
+    private Forms.ToolStripMenuItem? _creditExpiryItem;
+    private Forms.ToolStripMenuItem? _autoRefreshItem;
     private Forms.ToolStripMenuItem? _notificationsItem;
+    private Forms.ToolStripMenuItem? _resetCreditExpiryLookupItem;
     private Forms.ToolStripMenuItem? _alertsItem;
     private readonly List<(int? Threshold, Forms.ToolStripMenuItem Item)> _alertThresholdItems = new();
     private System.Drawing.Icon? _currentIcon;
@@ -42,6 +45,15 @@ public sealed class TrayController : IDisposable
             _dashboard.NotificationsEnabled = !_dashboard.NotificationsEnabled;
             UpdateTooltip();
         });
+        _resetCreditExpiryLookupItem = new Forms.ToolStripMenuItem(_dashboard.ResetCreditExpiryLookupText, null, async (_, _) =>
+        {
+            _dashboard.ResetCreditExpiryLookupEnabled = !_dashboard.ResetCreditExpiryLookupEnabled;
+            UpdateTooltip();
+            if (_dashboard.ResetCreditExpiryLookupEnabled)
+            {
+                await _dashboard.RefreshAsync(isSilent: true);
+            }
+        });
         _alertsItem = BuildAlertsMenu();
         var exitItem = new Forms.ToolStripMenuItem("Exit", null, (_, _) =>
         {
@@ -60,6 +72,14 @@ public sealed class TrayController : IDisposable
         {
             Enabled = false
         };
+        _creditExpiryItem = new Forms.ToolStripMenuItem(_dashboard.TrayMenuCreditExpiryText)
+        {
+            Enabled = false
+        };
+        _autoRefreshItem = new Forms.ToolStripMenuItem(_dashboard.AutoRefreshText)
+        {
+            Enabled = false
+        };
         _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent, _dashboard.TrayWeeklyPercent);
 
         _notifyIcon = new Forms.NotifyIcon
@@ -73,11 +93,14 @@ public sealed class TrayController : IDisposable
         _notifyIcon.ContextMenuStrip.Items.Add(_fiveHourItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_weeklyItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_creditsItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_creditExpiryItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_autoRefreshItem);
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(openItem);
         _notifyIcon.ContextMenuStrip.Items.Add(refreshItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_startWithWindowsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_notificationsItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_resetCreditExpiryLookupItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_alertsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(exitItem);
@@ -93,12 +116,16 @@ public sealed class TrayController : IDisposable
             or nameof(DashboardViewModel.TrayMenuFiveHourText)
             or nameof(DashboardViewModel.TrayMenuWeeklyText)
             or nameof(DashboardViewModel.TrayMenuCreditsText)
+            or nameof(DashboardViewModel.TrayMenuCreditExpiryText)
+            or nameof(DashboardViewModel.AutoRefreshText)
             or nameof(DashboardViewModel.TrayPrimaryPercent)
             or nameof(DashboardViewModel.TrayWeeklyPercent)
             or nameof(DashboardViewModel.StartWithWindowsEnabled)
             or nameof(DashboardViewModel.StartupSettingAvailable)
             or nameof(DashboardViewModel.NotificationsEnabled)
             or nameof(DashboardViewModel.NotificationsEnabledText)
+            or nameof(DashboardViewModel.ResetCreditExpiryLookupEnabled)
+            or nameof(DashboardViewModel.ResetCreditExpiryLookupText)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdPercent)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdText)))
         {
@@ -150,6 +177,16 @@ public sealed class TrayController : IDisposable
             _creditsItem.Text = _dashboard.TrayMenuCreditsText;
         }
 
+        if (_creditExpiryItem is not null)
+        {
+            _creditExpiryItem.Text = _dashboard.TrayMenuCreditExpiryText;
+        }
+
+        if (_autoRefreshItem is not null)
+        {
+            _autoRefreshItem.Text = _dashboard.AutoRefreshText;
+        }
+
         if (_startWithWindowsItem is not null)
         {
             _startWithWindowsItem.Checked = _dashboard.StartWithWindowsEnabled;
@@ -160,6 +197,12 @@ public sealed class TrayController : IDisposable
         {
             _notificationsItem.Text = _dashboard.NotificationsEnabledText;
             _notificationsItem.Checked = _dashboard.NotificationsEnabled;
+        }
+
+        if (_resetCreditExpiryLookupItem is not null)
+        {
+            _resetCreditExpiryLookupItem.Text = _dashboard.ResetCreditExpiryLookupText;
+            _resetCreditExpiryLookupItem.Checked = _dashboard.ResetCreditExpiryLookupEnabled;
         }
 
         if (_alertsItem is not null)

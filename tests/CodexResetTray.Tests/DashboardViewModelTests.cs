@@ -110,6 +110,87 @@ public sealed class DashboardViewModelTests
         Assert.Equal("Notifications: on", viewModel.NotificationsEnabledText);
     }
 
+    [Fact]
+    public void ResetCreditExpiryLookupEnabled_updates_settings_service_and_status_text()
+    {
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10);
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(CreateSnapshot(0, 0)),
+            alertSettingsService: alerts);
+
+        Assert.False(viewModel.ResetCreditExpiryLookupEnabled);
+        Assert.Equal("Expiry lookup: off", viewModel.ResetCreditExpiryLookupText);
+        Assert.Equal("Credit expiry: lookup off", viewModel.ResetCreditExpiryText);
+
+        viewModel.ResetCreditExpiryLookupEnabled = true;
+
+        Assert.True(alerts.ResetCreditExpiryLookupEnabled);
+        Assert.True(viewModel.ResetCreditExpiryLookupEnabled);
+        Assert.Equal("Expiry lookup: on", viewModel.ResetCreditExpiryLookupText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_displays_reset_credit_expiry_metadata_when_enabled()
+    {
+        var snapshot = CreateSnapshotWithResetCreditDetails();
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(snapshot),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+
+        var nextExpiry = snapshot.ResetCreditDetails!.Credits[0].ExpiresAt;
+        Assert.Equal("Credit expiry: 2 tracked", viewModel.ResetCreditExpiryText);
+        Assert.Contains("Next expires in", viewModel.ResetCreditExpiryDetailText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.ResetCreditExpiryDetailText);
+        Assert.Contains("Reset expiry: 2 tracked", viewModel.TrayMenuCreditExpiryText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.TrayMenuCreditExpiryText);
+    }
+
+    [Fact]
+    public void SetAutoRefreshCadence_updates_footer_status()
+    {
+        using var viewModel = new DashboardViewModel(new StubRateLimitSource(CreateSnapshot(0, 0)));
+
+        viewModel.SetAutoRefreshCadence(TimeSpan.FromSeconds(30));
+
+        Assert.Equal("Smart refresh: 30s", viewModel.AutoRefreshText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_records_last_successful_snapshot_and_raises_snapshot_applied()
+    {
+        var snapshot = CreateSnapshot(primaryUsed: 11, weeklyUsed: 14);
+        using var viewModel = new DashboardViewModel(new StubRateLimitSource(snapshot));
+        var appliedCount = 0;
+        viewModel.SnapshotApplied += (_, _) => appliedCount++;
+
+        await viewModel.RefreshAsync();
+
+        Assert.Same(snapshot, viewModel.LastSuccessfulSnapshot);
+        Assert.Equal(1, appliedCount);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_does_not_clear_last_successful_snapshot_after_failure()
+    {
+        var snapshot = CreateSnapshot(primaryUsed: 11, weeklyUsed: 14);
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                Task.FromResult(snapshot),
+                Task.FromException<RateLimitDashboardSnapshot>(new InvalidOperationException("boom"))));
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync();
+
+        Assert.Same(snapshot, viewModel.LastSuccessfulSnapshot);
+        Assert.Contains("boom", viewModel.ErrorText);
+    }
+
     private static RateLimitDashboardSnapshot CreateSnapshot(int primaryUsed, int weeklyUsed)
     {
         var now = DateTimeOffset.Now;
@@ -128,6 +209,44 @@ public sealed class DashboardViewModelTests
             now);
     }
 
+    private static RateLimitDashboardSnapshot CreateSnapshotWithResetCreditDetails()
+    {
+        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
+        var report = new ResetCreditReport(
+            2,
+            new[]
+            {
+                new ResetCreditInfo(
+                    "One free rate limit reset",
+                    "available",
+                    "codex_rate_limits",
+                    now.AddDays(-16),
+                    now.AddDays(1)),
+                new ResetCreditInfo(
+                    "One free rate limit reset",
+                    "available",
+                    "codex_rate_limits",
+                    now.AddDays(-10),
+                    now.AddDays(10))
+            },
+            now);
+
+        return new RateLimitDashboardSnapshot(
+            new[]
+            {
+                new RateLimitBucket(
+                    LimitId: "codex",
+                    DisplayName: "Codex",
+                    PlanType: "pro",
+                    RateLimitReachedType: null,
+                    Primary: new RateLimitWindowInfo(RateLimitWindowKind.FiveHour, 11, 300, now.AddHours(1)),
+                    Secondary: new RateLimitWindowInfo(RateLimitWindowKind.Weekly, 14, 10080, now.AddDays(3)))
+            },
+            5,
+            now,
+            report);
+    }
+
     private sealed class StubRateLimitSource : IRateLimitSource
     {
         private readonly RateLimitDashboardSnapshot _snapshot;
@@ -139,6 +258,19 @@ public sealed class DashboardViewModelTests
 
         public Task<RateLimitDashboardSnapshot> ReadAsync(CancellationToken cancellationToken) =>
             Task.FromResult(_snapshot);
+    }
+
+    private sealed class SequenceRateLimitSource : IRateLimitSource
+    {
+        private readonly Queue<Task<RateLimitDashboardSnapshot>> _reads;
+
+        public SequenceRateLimitSource(params Task<RateLimitDashboardSnapshot>[] reads)
+        {
+            _reads = new Queue<Task<RateLimitDashboardSnapshot>>(reads);
+        }
+
+        public Task<RateLimitDashboardSnapshot> ReadAsync(CancellationToken cancellationToken) =>
+            _reads.Dequeue();
     }
 
     private sealed class StubStartupService : IStartupService

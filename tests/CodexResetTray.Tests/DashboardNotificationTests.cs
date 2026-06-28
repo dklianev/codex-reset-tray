@@ -155,6 +155,35 @@ public sealed class DashboardNotificationTests
     }
 
     [Fact]
+    public async Task RefreshAsync_notifies_once_when_reset_credit_enters_expiry_warning_window()
+    {
+        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
+        var expiresAt = now.AddHours(49);
+        var alerts = new StubAlertSettingsService(thresholdPercent: null)
+        {
+            ResetCreditExpiryLookupEnabled = true,
+            ResetCreditExpiryWarningHours = 48
+        };
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                CreateSnapshot(now, primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now, expiresAt)),
+                CreateSnapshot(now.AddHours(2), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddHours(2), expiresAt)),
+                CreateSnapshot(now.AddHours(3), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddHours(3), expiresAt))),
+            alertSettingsService: alerts);
+        var notifications = CaptureNotifications(viewModel);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync(isSilent: true);
+        await viewModel.RefreshAsync(isSilent: true);
+
+        var notification = Assert.Single(notifications);
+        Assert.Equal(TrayNotificationLevel.Warning, notification.Level);
+        Assert.Equal("Reset credit expiring soon", notification.Title);
+        Assert.Contains("expires in", notification.Text);
+        Assert.Single(viewModel.Notifications);
+    }
+
+    [Fact]
     public async Task RefreshAsync_reseeds_alert_state_while_notifications_are_disabled()
     {
         var now = DateTimeOffset.Now;
@@ -216,7 +245,8 @@ public sealed class DashboardNotificationTests
         int weeklyUsed,
         long? credits,
         DateTimeOffset? primaryReset = null,
-        DateTimeOffset? weeklyReset = null)
+        DateTimeOffset? weeklyReset = null,
+        ResetCreditReport? resetCreditDetails = null)
     {
         return new RateLimitDashboardSnapshot(
             new[]
@@ -230,8 +260,23 @@ public sealed class DashboardNotificationTests
                     Secondary: new RateLimitWindowInfo(RateLimitWindowKind.Weekly, weeklyUsed, 10080, weeklyReset ?? fetchedAt.AddDays(3)))
             },
             credits,
-            fetchedAt);
+            fetchedAt,
+            resetCreditDetails);
     }
+
+    private static ResetCreditReport CreateCreditReport(DateTimeOffset fetchedAt, DateTimeOffset expiresAt) =>
+        new(
+            2,
+            new[]
+            {
+                new ResetCreditInfo(
+                    "One free rate limit reset",
+                    "available",
+                    "codex_rate_limits",
+                    expiresAt.AddDays(-30),
+                    expiresAt)
+            },
+            fetchedAt);
 
     private sealed class SequenceRateLimitSource : IRateLimitSource
     {

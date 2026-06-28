@@ -6,6 +6,7 @@ namespace CodexResetTray.App.Services;
 public sealed class JsonAlertSettingsService : IAlertSettingsService
 {
     private const int DefaultThresholdPercent = 10;
+    private const int DefaultResetCreditExpiryWarningHours = 48;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly string _settingsPath;
     private AppSettings _settings;
@@ -44,8 +45,31 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
         }
     }
 
+    public bool ResetCreditExpiryLookupEnabled
+    {
+        get => _settings.ResetCreditExpiryLookupEnabled;
+        set
+        {
+            _settings.ResetCreditExpiryLookupEnabled = value;
+            Save();
+        }
+    }
+
+    public int ResetCreditExpiryWarningHours
+    {
+        get => _settings.ResetCreditExpiryWarningHours;
+        set
+        {
+            _settings.ResetCreditExpiryWarningHours = SanitizeWarningHours(value);
+            Save();
+        }
+    }
+
     private static int? Sanitize(int? value) =>
         value is { } percent ? Math.Clamp(percent, 1, 99) : (int?)null;
+
+    private static int SanitizeWarningHours(int value) =>
+        Math.Clamp(value, 1, 720);
 
     private static AppSettings Load(string path)
     {
@@ -59,6 +83,7 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
             var json = File.ReadAllText(path);
             var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
             settings.LowRemainingThresholdPercent = Sanitize(settings.LowRemainingThresholdPercent);
+            settings.ResetCreditExpiryWarningHours = SanitizeWarningHours(settings.ResetCreditExpiryWarningHours);
             return settings;
         }
         catch (IOException)
@@ -87,5 +112,9 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
         public int? LowRemainingThresholdPercent { get; set; } = DefaultThresholdPercent;
 
         public bool NotificationsEnabled { get; set; } = true;
+
+        public bool ResetCreditExpiryLookupEnabled { get; set; }
+
+        public int ResetCreditExpiryWarningHours { get; set; } = DefaultResetCreditExpiryWarningHours;
     }
 }

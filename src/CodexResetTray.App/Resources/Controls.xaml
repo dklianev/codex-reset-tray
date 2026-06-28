@@ -218,6 +218,46 @@
         </Setter>
     </Style>
 
+    <Style x:Key="InlineToggleCheckBox" TargetType="{x:Type CheckBox}">
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type CheckBox}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="7" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Track" Width="34" Height="18" CornerRadius="9"
+                                Background="{StaticResource GaugeTrackBrush}"
+                                BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1">
+                            <Ellipse x:Name="Thumb" Width="12" Height="12" Fill="{StaticResource MutedInkBrush}"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0" />
+                        </Border>
+                        <ContentPresenter Grid.Column="2" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentGradientBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource GlassHighlightBrush}" />
+                            <Setter TargetName="Thumb" Property="Fill" Value="#061511" />
+                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Thumb" Property="Margin" Value="0,0,3,0" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource GlassHighlightBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="NotificationPanelStyle" TargetType="{x:Type Border}">
         <Setter Property="Visibility" Value="Collapsed" />
         <Setter Property="Background" Value="#F20B1016" />
