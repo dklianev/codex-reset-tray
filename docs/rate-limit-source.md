@@ -41,7 +41,7 @@ The app treats `resetsAt` as a Unix timestamp returned by Codex and converts it 
 
 ## Experimental Reset-Credit Expiry
 
-Codex app-server currently provides the reset credit count, but not per-credit expiry dates. Codex Reset Tray can optionally enrich the dashboard with expiry metadata from:
+Codex app-server currently provides the reset credit count, but not per-credit expiry dates. Codex Reset Tray can optionally enrich the dashboard with a sorted per-credit expiry timeline from:
 
 ```text
 GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits
@@ -67,6 +67,8 @@ The parser accepts only:
 - `credits[].reset_type`
 - `credits[].granted_at`
 - `credits[].expires_at`
+
+The UI sorts accepted credits by `expires_at` and displays compact per-credit rows with the ordinal, relative expiry, exact local expiry time, title, and metadata status. The rows are non-clickable and cannot consume reset credits.
 
 The endpoint is unofficial and may change. Failures are ignored and the official app-server snapshot stays visible. The endpoint's `available_count` is never used to override `rateLimitResetCredits.availableCount` from app-server.
 

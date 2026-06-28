@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using CodexResetTray.App.ViewModels;
 using System.Windows.Threading;
@@ -29,6 +30,7 @@ public sealed class TrayController : IDisposable
         _dashboard = dashboard;
         _dashboard.PropertyChanged += OnDashboardPropertyChanged;
         _dashboard.NotificationRequested += OnNotificationRequested;
+        _dashboard.ResetCreditExpiries.CollectionChanged += OnResetCreditExpiriesChanged;
     }
 
     public void Initialize()
@@ -126,12 +128,18 @@ public sealed class TrayController : IDisposable
             or nameof(DashboardViewModel.NotificationsEnabledText)
             or nameof(DashboardViewModel.ResetCreditExpiryLookupEnabled)
             or nameof(DashboardViewModel.ResetCreditExpiryLookupText)
+            or nameof(DashboardViewModel.HasResetCreditExpiries)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdPercent)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdText)))
         {
             return;
         }
 
+        QueueUpdate();
+    }
+
+    private void OnResetCreditExpiriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
         QueueUpdate();
     }
 
@@ -180,6 +188,15 @@ public sealed class TrayController : IDisposable
         if (_creditExpiryItem is not null)
         {
             _creditExpiryItem.Text = _dashboard.TrayMenuCreditExpiryText;
+            _creditExpiryItem.Enabled = _dashboard.HasResetCreditExpiries;
+            _creditExpiryItem.DropDownItems.Clear();
+            foreach (var expiry in _dashboard.ResetCreditExpiries)
+            {
+                _creditExpiryItem.DropDownItems.Add(new Forms.ToolStripMenuItem(expiry.TrayMenuText)
+                {
+                    Enabled = false
+                });
+            }
         }
 
         if (_autoRefreshItem is not null)
@@ -268,6 +285,7 @@ public sealed class TrayController : IDisposable
 
         _dashboard.PropertyChanged -= OnDashboardPropertyChanged;
         _dashboard.NotificationRequested -= OnNotificationRequested;
+        _dashboard.ResetCreditExpiries.CollectionChanged -= OnResetCreditExpiriesChanged;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _notifyIcon = null;

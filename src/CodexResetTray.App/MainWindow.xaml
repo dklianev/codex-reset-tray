@@ -129,6 +129,40 @@
                 </Grid>
             </Border>
         </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ResetCreditExpiryViewModel}">
+            <Border Background="#0CFFFFFF" BorderBrush="{StaticResource HairlineBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="10,9" Margin="0,0,0,7">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="30" Height="24" CornerRadius="8"
+                            Background="{StaticResource GaugeTrackBrush}" BorderBrush="{Binding AccentBrush}"
+                            BorderThickness="1" VerticalAlignment="Top">
+                        <TextBlock Text="{Binding OrdinalText}" Style="{StaticResource MonoCaption}"
+                                   Foreground="{StaticResource InkBrush}" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" FontSize="10" />
+                    </Border>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{Binding RelativeText}" Style="{StaticResource TitleText}" FontSize="12" />
+                        <TextBlock Text="{Binding ExactText}" Style="{StaticResource MonoCaption}"
+                                   Foreground="{StaticResource MutedInkBrush}" Margin="0,3,0,0" />
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource CaptionText}"
+                                   Foreground="{StaticResource SubtleInkBrush}" TextTrimming="CharacterEllipsis"
+                                   Margin="0,3,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="9,2,0,0">
+                        <Ellipse Width="6" Height="6" Fill="{Binding AccentBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource MonoCaption}" FontSize="10"
+                                   Foreground="{StaticResource MutedInkBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
     </Window.Resources>
 
     <!-- Outer margin leaves room for the floating window shadow. -->
@@ -309,6 +343,35 @@
                                         <TextBlock Text="{Binding ResetCreditExpiryText}" Style="{StaticResource TitleText}" FontSize="12" />
                                         <TextBlock Text="{Binding ResetCreditExpiryDetailText}" Style="{StaticResource CaptionText}"
                                                    Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                        <Border Background="#08FFFFFF" BorderBrush="{StaticResource HairlineBrush}"
+                                                BorderThickness="1" CornerRadius="11" Padding="10" Margin="0,10,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasResetCreditExpiries}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,7">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Expiry timeline" Style="{StaticResource EyebrowText}"
+                                                               Foreground="{StaticResource MutedInkBrush}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding ResetCreditExpirySummaryText}"
+                                                               Style="{StaticResource MonoCaption}" Foreground="{StaticResource SubtleInkBrush}"
+                                                               Margin="10,0,0,0" />
+                                                </Grid>
+                                                <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding ResetCreditExpiries}" />
+                                                </ScrollViewer>
+                                            </StackPanel>
+                                        </Border>
                                         <DockPanel Margin="0,10,0,0" LastChildFill="False">
                                             <TextBlock Text="{Binding AutoRefreshText}" Style="{StaticResource MonoCaption}"
                                                        DockPanel.Dock="Left" />

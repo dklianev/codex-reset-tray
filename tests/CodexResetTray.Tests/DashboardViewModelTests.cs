@@ -145,10 +145,149 @@ public sealed class DashboardViewModelTests
 
         var nextExpiry = snapshot.ResetCreditDetails!.Credits[0].ExpiresAt;
         Assert.Equal("Credit expiry: 2 tracked", viewModel.ResetCreditExpiryText);
+        Assert.Equal("2 reset credits tracked", viewModel.ResetCreditExpirySummaryText);
         Assert.Contains("Next expires in", viewModel.ResetCreditExpiryDetailText);
         Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.ResetCreditExpiryDetailText);
         Assert.Contains("Reset expiry: 2 tracked", viewModel.TrayMenuCreditExpiryText);
         Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.TrayMenuCreditExpiryText);
+
+        Assert.Equal(2, viewModel.ResetCreditExpiries.Count);
+        Assert.Equal("#1", viewModel.ResetCreditExpiries[0].OrdinalText);
+        Assert.Equal("#2", viewModel.ResetCreditExpiries[1].OrdinalText);
+        Assert.True(viewModel.HasResetCreditExpiries);
+        Assert.Contains("Expires in 1d", viewModel.ResetCreditExpiries[0].RelativeText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.ResetCreditExpiries[0].ExactText);
+        Assert.Equal("One free rate limit reset", viewModel.ResetCreditExpiries[0].Title);
+        Assert.Contains("#1", viewModel.ResetCreditExpiries[0].TrayMenuText);
+        Assert.Contains("1d", viewModel.ResetCreditExpiries[0].TrayMenuText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(nextExpiry, TimeZoneInfo.Local), viewModel.ResetCreditExpiries[0].TrayMenuText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_sorts_all_reset_credit_expiry_rows_by_expiry()
+    {
+        var snapshot = CreateSnapshotWithResetCreditDetails(
+            DateTimeOffset.Parse("2026-06-28T10:00:00Z"),
+            DateTimeOffset.Parse("2026-07-15T10:00:00Z"),
+            DateTimeOffset.Parse("2026-06-30T10:00:00Z"),
+            DateTimeOffset.Parse("2026-07-05T10:00:00Z"));
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(snapshot),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Equal(3, viewModel.ResetCreditExpiries.Count);
+        Assert.Contains("Jun 30", viewModel.ResetCreditExpiries[0].ExactText);
+        Assert.Contains("Jul 5", viewModel.ResetCreditExpiries[1].ExactText);
+        Assert.Contains("Jul 15", viewModel.ResetCreditExpiries[2].ExactText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_clears_reset_credit_expiry_rows_when_lookup_is_off_or_unavailable()
+    {
+        var enabledSnapshot = CreateSnapshotWithResetCreditDetails();
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                Task.FromResult(enabledSnapshot),
+                Task.FromResult(CreateSnapshot(primaryUsed: 11, weeklyUsed: 14))),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+        Assert.True(viewModel.HasResetCreditExpiries);
+
+        await viewModel.RefreshAsync();
+        Assert.False(viewModel.HasResetCreditExpiries);
+        Assert.Empty(viewModel.ResetCreditExpiries);
+
+        viewModel.ResetCreditExpiryLookupEnabled = false;
+        Assert.False(viewModel.HasResetCreditExpiries);
+        Assert.Empty(viewModel.ResetCreditExpiries);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_displays_expired_available_reset_credit_rows_without_active_expiry()
+    {
+        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
+        var snapshot = CreateSnapshotWithResetCreditDetails(
+            now,
+            now.AddDays(-1),
+            now.AddDays(5));
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(snapshot),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+
+        Assert.Equal("Expired", viewModel.ResetCreditExpiries[0].RelativeText);
+        Assert.Equal("Expired", viewModel.ResetCreditExpiries[0].StatusText);
+        Assert.Contains("Next expires in 5d", viewModel.ResetCreditExpiryDetailText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_displays_empty_timeline_state_when_report_has_no_credits()
+    {
+        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
+        var snapshot = new RateLimitDashboardSnapshot(
+            CreateSnapshot(11, 14).Buckets,
+            0,
+            now,
+            new ResetCreditReport(0, Array.Empty<ResetCreditInfo>(), now));
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(snapshot),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+
+        Assert.False(viewModel.HasResetCreditExpiries);
+        Assert.Empty(viewModel.ResetCreditExpiries);
+        Assert.Equal("No reset credits tracked", viewModel.ResetCreditExpirySummaryText);
+        Assert.Equal("No available reset-credit expiry dates were returned.", viewModel.ResetCreditExpiryDetailText);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_does_not_surface_raw_auth_or_endpoint_terms_in_expiry_ui()
+    {
+        var snapshot = CreateSnapshotWithResetCreditDetails();
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10)
+        {
+            ResetCreditExpiryLookupEnabled = true
+        };
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(snapshot),
+            alertSettingsService: alerts);
+
+        await viewModel.RefreshAsync();
+
+        var visibleText = string.Join(
+            " ",
+            new[]
+            {
+                viewModel.ResetCreditExpiryText,
+                viewModel.ResetCreditExpiryDetailText,
+                viewModel.ResetCreditExpirySummaryText,
+                viewModel.TrayMenuCreditExpiryText
+            }.Concat(viewModel.ResetCreditExpiries.Select(row => row.TrayMenuText)));
+        foreach (var forbidden in new[] { "auth.json", "access_token", "account_id", "Bearer", "rate-limit-reset-credits", "expires_at" })
+        {
+            Assert.DoesNotContain(forbidden, visibleText, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [Fact]
@@ -209,26 +348,25 @@ public sealed class DashboardViewModelTests
             now);
     }
 
-    private static RateLimitDashboardSnapshot CreateSnapshotWithResetCreditDetails()
+    private static RateLimitDashboardSnapshot CreateSnapshotWithResetCreditDetails() =>
+        CreateSnapshotWithResetCreditDetails(
+            DateTimeOffset.Parse("2026-06-28T10:00:00Z"),
+            DateTimeOffset.Parse("2026-06-29T10:00:00Z"),
+            DateTimeOffset.Parse("2026-07-08T10:00:00Z"));
+
+    private static RateLimitDashboardSnapshot CreateSnapshotWithResetCreditDetails(
+        DateTimeOffset now,
+        params DateTimeOffset[] expiresAt)
     {
-        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
         var report = new ResetCreditReport(
-            2,
-            new[]
-            {
+            expiresAt.Length,
+            expiresAt.Select(expiry =>
                 new ResetCreditInfo(
                     "One free rate limit reset",
                     "available",
                     "codex_rate_limits",
-                    now.AddDays(-16),
-                    now.AddDays(1)),
-                new ResetCreditInfo(
-                    "One free rate limit reset",
-                    "available",
-                    "codex_rate_limits",
-                    now.AddDays(-10),
-                    now.AddDays(10))
-            },
+                    expiry.AddDays(-30),
+                    expiry)).ToArray(),
             now);
 
         return new RateLimitDashboardSnapshot(

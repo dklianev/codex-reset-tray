@@ -40,6 +40,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _resetCreditExpiryLookupText = "Expiry lookup: off";
     private string _resetCreditExpiryText = "Credit expiry: lookup off";
     private string _resetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
+    private string _resetCreditExpirySummaryText = "No expiry timeline yet";
     private string _autoRefreshText = "Smart refresh: 5m";
     private string _mainLimitName = "Codex";
     private string _primaryRemainingText = "--";
@@ -67,6 +68,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private bool _startupSettingAvailable;
     private bool _hasUnreadNotifications;
     private bool _hasNotifications;
+    private bool _hasResetCreditExpiries;
     private bool _isNotificationsOpen;
     private bool _notificationsEnabled = true;
     private bool _resetCreditExpiryLookupEnabled;
@@ -107,6 +109,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<BucketViewModel> Buckets { get; } = new();
 
     public ObservableCollection<NotificationViewModel> Notifications { get; } = new();
+
+    public ObservableCollection<ResetCreditExpiryViewModel> ResetCreditExpiries { get; } = new();
 
     public RateLimitDashboardSnapshot? LastSuccessfulSnapshot { get; private set; }
 
@@ -316,6 +320,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _resetCreditExpiryDetailText, value);
     }
 
+    public string ResetCreditExpirySummaryText
+    {
+        get => _resetCreditExpirySummaryText;
+        private set => SetProperty(ref _resetCreditExpirySummaryText, value);
+    }
+
     public string AutoRefreshText
     {
         get => _autoRefreshText;
@@ -359,6 +369,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _hasNotifications;
         private set => SetProperty(ref _hasNotifications, value);
+    }
+
+    public bool HasResetCreditExpiries
+    {
+        get => _hasResetCreditExpiries;
+        private set => SetProperty(ref _hasResetCreditExpiries, value);
     }
 
     public bool IsNotificationsOpen
@@ -509,7 +525,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         if (!ResetCreditExpiryLookupEnabled)
         {
+            ClearResetCreditExpiryRows();
             ResetCreditExpiryText = "Credit expiry: lookup off";
+            ResetCreditExpirySummaryText = "Expiry timeline disabled";
             ResetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
             TrayMenuCreditExpiryText = "Reset expiry: lookup off";
             return;
@@ -517,7 +535,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
         if (snapshot.ResetCreditDetails is not { } report)
         {
+            ClearResetCreditExpiryRows();
             ResetCreditExpiryText = "Credit expiry: unavailable";
+            ResetCreditExpirySummaryText = "Expiry timeline unavailable";
             ResetCreditExpiryDetailText = "Experimental endpoint unavailable; official credit count is still shown.";
             TrayMenuCreditExpiryText = "Reset expiry: unavailable";
             return;
@@ -525,6 +545,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
         var trackedCredits = report.Credits.Count;
         ResetCreditExpiryText = $"Credit expiry: {trackedCredits} tracked";
+        ResetCreditExpirySummaryText = trackedCredits switch
+        {
+            0 => "No reset credits tracked",
+            1 => "1 reset credit tracked",
+            _ => $"{trackedCredits} reset credits tracked"
+        };
+        ApplyResetCreditExpiryRows(report, snapshot.FetchedAt);
         if (report.NextExpiringCredit(snapshot.FetchedAt) is { } next)
         {
             var relative = ResetTimeFormatter.FormatRelative(next.ExpiresAt, snapshot.FetchedAt);
@@ -536,6 +563,24 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
         ResetCreditExpiryDetailText = "No available reset-credit expiry dates were returned.";
         TrayMenuCreditExpiryText = $"Reset expiry: {trackedCredits} tracked | no active expiry";
+    }
+
+    private void ApplyResetCreditExpiryRows(ResetCreditReport report, DateTimeOffset fetchedAt)
+    {
+        ResetCreditExpiries.Clear();
+        var ordinal = 1;
+        foreach (var credit in report.Credits.OrderBy(credit => credit.ExpiresAt))
+        {
+            ResetCreditExpiries.Add(new ResetCreditExpiryViewModel(credit, ordinal++, fetchedAt));
+        }
+
+        HasResetCreditExpiries = ResetCreditExpiries.Count > 0;
+    }
+
+    private void ClearResetCreditExpiryRows()
+    {
+        ResetCreditExpiries.Clear();
+        HasResetCreditExpiries = false;
     }
 
     private void ApplyHeroMetrics(RateLimitDashboardSnapshot snapshot)
@@ -631,7 +676,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         ErrorText = SecretRedactor.Redact(ex.Message);
         LastUpdatedText = $"Failed {ResetTimeFormatter.FormatExact(DateTimeOffset.Now, TimeZoneInfo.Local)}";
         ResetCreditsText = "Reset credits: unavailable";
+        ClearResetCreditExpiryRows();
         ResetCreditExpiryText = ResetCreditExpiryLookupEnabled ? "Credit expiry: unavailable" : "Credit expiry: lookup off";
+        ResetCreditExpirySummaryText = ResetCreditExpiryLookupEnabled
+            ? "Expiry timeline unavailable"
+            : "Expiry timeline disabled";
         ResetCreditExpiryDetailText = ResetCreditExpiryLookupEnabled
             ? "Refresh failed before expiry metadata could be checked."
             : "Enable experimental lookup to track when reset credits expire.";

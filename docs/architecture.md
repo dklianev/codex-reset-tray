@@ -18,7 +18,7 @@ The parser prefers `rateLimitsByLimitId` because it supports multiple buckets. I
 
 `CodexResetTray.App` is a WPF app with a WinForms `NotifyIcon`.
 
-- `App.xaml.cs` owns single-instance startup, the tray controller, and the 10-minute refresh timer.
+- `App.xaml.cs` owns single-instance startup, the tray controller, and the smart refresh timer.
 - `Services/CodexAppServerRateLimitSource.cs` runs a short read-only Codex app-server session.
 - `Services/TrayController.cs` owns the Windows tray icon, context menu, and Windows notifications.
 - `Services/JsonAlertSettingsService.cs` persists lightweight per-user alert settings.
@@ -40,4 +40,4 @@ The current implementation opens a short app-server session per refresh:
 5. Parse the response.
 6. Close the child process.
 
-This keeps the resident app lightweight while avoiding direct auth-file access. A future version can switch to a long-lived app-server process and subscribe to `account/rateLimits/updated` if real-time updates become important.
+The refresh timer uses a 5-minute default cadence, tightens to 1 minute when a reset is within 15 minutes, and tightens to 30 seconds when a reset is within 2 minutes. This keeps the resident app lightweight while avoiding direct auth-file access by default. A future version can switch to a long-lived app-server process and subscribe to `account/rateLimits/updated` if real-time updates become important.

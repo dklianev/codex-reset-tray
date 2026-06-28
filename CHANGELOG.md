@@ -21,5 +21,5 @@
 - Added an in-app notification center with a title-bar bell, unread badge, and compact alert history.
 - Added a persisted global notification mute in the tray menu.
 - Improved tray hover text and tray menu reset details, including exact local reset times.
-- Added experimental opt-in reset-credit expiry metadata with tray/dashboard status, expiry warnings, and strict fallback to official app-server counts.
+- Added experimental opt-in reset-credit expiry metadata with tray/dashboard status, an all-credit expiry timeline, expiry warnings, and strict fallback to official app-server counts.
 - Added smart auto-refresh cadence: 5 minutes normally, 1 minute near reset, and 30 seconds when a reset is imminent.
