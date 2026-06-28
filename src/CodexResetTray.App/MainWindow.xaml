@@ -53,15 +53,11 @@
                             <TextBlock Text="{Binding Name}" Style="{StaticResource TitleText}" />
                             <TextBlock Text="{Binding PlanLabel}" Style="{StaticResource CaptionText}" Margin="0,1,0,0" />
                         </StackPanel>
-                        <Border Grid.Column="1" VerticalAlignment="Center" Background="{StaticResource PillBrush}"
-                                BorderBrush="{StaticResource PillStrokeBrush}" BorderThickness="1"
-                                CornerRadius="999" Padding="9,4">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" VerticalAlignment="Center" Fill="{Binding StateBrush}" Margin="0,0,6,0" />
-                                <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{Binding StateBrush}" TextWrapping="NoWrap" />
-                            </StackPanel>
-                        </Border>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="7" Height="7" VerticalAlignment="Center" Fill="{Binding StateBrush}" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{Binding StateBrush}" Typography.Capitals="AllSmallCaps" TextWrapping="NoWrap" />
+                        </StackPanel>
                     </Grid>
 
                     <Grid Margin="0,13,0,0">
@@ -151,16 +147,15 @@
                            VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Grid.Column="1" Text="Codex Reset Tray" VerticalAlignment="Center" Margin="11,0,0,0"
                                FontSize="14" FontWeight="SemiBold" />
-                    <Border Grid.Column="2" Style="{StaticResource PillBorderStyle}" VerticalAlignment="Center" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding StatusBrush}" Margin="0,0,7,0">
-                                <Ellipse.Effect>
-                                    <DropShadowEffect ShadowDepth="0" BlurRadius="9" Opacity="0.8" Color="{Binding HeroPercent, Converter={StaticResource GlowColor}}" />
-                                </Ellipse.Effect>
-                            </Ellipse>
-                            <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap" />
-                        </StackPanel>
-                    </Border>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding StatusBrush}" Margin="0,0,8,0">
+                            <Ellipse.Effect>
+                                <DropShadowEffect ShadowDepth="0" BlurRadius="11" Opacity="0.95" Color="{Binding HeroPercent, Converter={StaticResource GlowColor}}" />
+                            </Ellipse.Effect>
+                        </Ellipse>
+                        <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                   Foreground="{StaticResource MutedInkBrush}" TextWrapping="NoWrap" />
+                    </StackPanel>
                     <Button Grid.Column="3" x:Name="CloseButton" Style="{StaticResource ChromeCloseButton}"
                             VerticalAlignment="Center" Click="CloseButton_Click" />
                 </Grid>
@@ -236,22 +231,14 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Meta strip -->
-                        <Grid Margin="0,20,0,16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Border Style="{StaticResource PillBorderStyle}">
-                                <TextBlock Text="{Binding ResetCreditsText}" FontFamily="{StaticResource MonoFont}"
-                                           FontSize="11" Foreground="{StaticResource MutedInkBrush}" TextWrapping="NoWrap" />
-                            </Border>
-                            <Border Grid.Column="2" Style="{StaticResource PillBorderStyle}">
-                                <TextBlock Text="{Binding LastUpdatedText}" FontFamily="{StaticResource MonoFont}"
-                                           FontSize="11" Foreground="{StaticResource SubtleInkBrush}" TextWrapping="NoWrap" />
-                            </Border>
-                        </Grid>
+                        <!-- Telemetry readout: clean divided mono line, no chips -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,18">
+                            <TextBlock Text="{Binding ResetCreditsText}" FontFamily="{StaticResource MonoFont}"
+                                       FontSize="11" Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                            <Border Width="1" Height="11" Background="{StaticResource HairlineBrush}" Margin="14,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding LastUpdatedText}" FontFamily="{StaticResource MonoFont}"
+                                       FontSize="11" Foreground="{StaticResource SubtleInkBrush}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                        </StackPanel>
 
                         <!-- Error -->
                         <Border Style="{StaticResource ErrorSurfaceStyle}">
