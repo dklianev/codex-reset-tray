@@ -8,27 +8,27 @@ namespace CodexResetTray.App.Services;
 /// Builds the system-tray icon as a true multi-resolution <see cref="Icon"/>
 /// (16-64 px frames) so Windows picks a crisp frame at every DPI.
 ///
-/// The mark is deliberately a single, bold signal: a circular ring that fills
-/// clockwise with the 5-hour used %, coloured by the shared usage-state ramp
-/// (emerald -> amber -> orange -> red). No inner glyphs compete with it, so the
-/// state reads instantly at 16 px on both light and dark taskbars.
+/// The mark is a pair of concentric "activity" rings shown at once: the OUTER
+/// ring fills with the 5-hour used %, the INNER ring with the weekly used %.
+/// Each ring is coloured by the shared usage-state ramp (emerald -> amber ->
+/// orange -> red) and backed by a dark halo so both read on light and dark
+/// taskbars. A ring with no data shows only its track.
 /// </summary>
 public static class TrayIconFactory
 {
     private static readonly int[] FrameSizes = { 16, 20, 24, 32, 48, 64 };
 
-    private static readonly Color Halo = Color.FromArgb(225, 6, 9, 13);     // dark contrast ring
-    private static readonly Color Track = Color.FromArgb(255, 36, 44, 55);  // unfilled channel
-    private static readonly Color Unknown = Color.FromArgb(255, 96, 106, 120);
+    private static readonly Color Halo = Color.FromArgb(225, 6, 9, 13);    // dark contrast backing
+    private static readonly Color Track = Color.FromArgb(255, 38, 46, 56); // unfilled channel
 
-    public static Icon Create(int? primaryPercent)
+    public static Icon Create(int? primaryPercent, int? weeklyPercent)
     {
         var bitmaps = new Bitmap[FrameSizes.Length];
         try
         {
             for (var i = 0; i < FrameSizes.Length; i++)
             {
-                bitmaps[i] = RenderFrame(FrameSizes[i], primaryPercent);
+                bitmaps[i] = RenderFrame(FrameSizes[i], primaryPercent, weeklyPercent);
             }
 
             using var stream = new MemoryStream();
@@ -45,7 +45,7 @@ public static class TrayIconFactory
         }
     }
 
-    private static Bitmap RenderFrame(int size, int? primaryPercent)
+    private static Bitmap RenderFrame(int size, int? primaryPercent, int? weeklyPercent)
     {
         var bitmap = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using (var graphics = Graphics.FromImage(bitmap))
@@ -54,55 +54,58 @@ public static class TrayIconFactory
             graphics.CompositingQuality = CompositingQuality.HighQuality;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             graphics.Clear(Color.Transparent);
-            DrawRing(graphics, size, primaryPercent);
+            DrawDualRing(graphics, size, primaryPercent, weeklyPercent);
         }
 
         return bitmap;
     }
 
-    private static void DrawRing(Graphics graphics, int size, int? primaryPercent)
+    private static void DrawDualRing(Graphics graphics, int size, int? primaryPercent, int? weeklyPercent)
     {
-        // Bold stroke that survives 16 px; inset keeps the ring fully inside the frame.
-        var stroke = Math.Max(3f, size * 0.2f);
-        var haloStroke = stroke + Math.Max(1.3f, size * 0.06f);
-        var inset = haloStroke / 2f + Math.Max(0.7f, size * 0.04f);
-        var rect = RectangleF.FromLTRB(inset, inset, size - inset, size - inset);
+        var center = new PointF(size / 2f, size / 2f);
 
-        const float startAngle = -90f; // 12 o'clock
-        const float fullSweep = 360f;
+        var outerStroke = Math.Max(2.3f, size * 0.13f);
+        var innerStroke = Math.Max(2.1f, size * 0.12f);
+        var gap = Math.Max(1.1f, size * 0.07f);
+        var halo = Math.Max(1.0f, size * 0.05f);
+        var inset = halo / 2f + Math.Max(0.7f, size * 0.035f);
 
-        using (var haloPen = new Pen(Halo, haloStroke))
+        var outerRadius = size / 2f - inset - outerStroke / 2f;
+        var innerRadius = outerRadius - outerStroke / 2f - gap - innerStroke / 2f;
+
+        DrawRing(graphics, center, outerRadius, outerStroke, halo, primaryPercent); // 5-hour
+        if (innerRadius > innerStroke / 2f)
         {
-            graphics.DrawArc(haloPen, rect, 0, fullSweep);
+            DrawRing(graphics, center, innerRadius, innerStroke, halo, weeklyPercent); // weekly
+        }
+    }
+
+    private static void DrawRing(Graphics graphics, PointF center, float radius, float stroke, float halo, int? percent)
+    {
+        var rect = new RectangleF(center.X - radius, center.Y - radius, radius * 2f, radius * 2f);
+
+        using (var haloPen = new Pen(Halo, stroke + halo))
+        {
+            graphics.DrawArc(haloPen, rect, 0f, 360f);
         }
 
         using (var trackPen = new Pen(Track, stroke))
         {
-            graphics.DrawArc(trackPen, rect, 0, fullSweep);
+            graphics.DrawArc(trackPen, rect, 0f, 360f);
         }
 
-        if (primaryPercent is { } percent)
+        if (percent is { } value)
         {
-            var sweep = fullSweep * (Math.Clamp(percent, 0, 100) / 100f);
+            var sweep = 360f * (Math.Clamp(value, 0, 100) / 100f);
             if (sweep > 0f)
             {
-                using var progressPen = new Pen(RampColor(percent), stroke)
+                using var progressPen = new Pen(RampColor(value), stroke)
                 {
                     StartCap = LineCap.Round,
                     EndCap = LineCap.Round
                 };
-                graphics.DrawArc(progressPen, rect, startAngle, sweep);
+                graphics.DrawArc(progressPen, rect, -90f, sweep); // fill clockwise from 12 o'clock
             }
-        }
-        else
-        {
-            // No data: a small neutral tick at the top so the icon never looks blank.
-            using var tickPen = new Pen(Unknown, stroke)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
-            graphics.DrawArc(tickPen, rect, startAngle, 14f);
         }
     }
 
