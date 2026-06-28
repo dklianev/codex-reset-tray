@@ -92,6 +92,24 @@ public sealed class DashboardViewModelTests
         Assert.Equal("Low alerts: off", viewModel.LowRemainingAlertThresholdText);
     }
 
+    [Fact]
+    public void NotificationsEnabled_updates_settings_service_and_status_text()
+    {
+        var alerts = new StubAlertSettingsService(thresholdPercent: 10, notificationsEnabled: false);
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(CreateSnapshot(0, 0)),
+            alertSettingsService: alerts);
+
+        Assert.False(viewModel.NotificationsEnabled);
+        Assert.Equal("Notifications: off", viewModel.NotificationsEnabledText);
+
+        viewModel.NotificationsEnabled = true;
+
+        Assert.True(alerts.NotificationsEnabled);
+        Assert.True(viewModel.NotificationsEnabled);
+        Assert.Equal("Notifications: on", viewModel.NotificationsEnabledText);
+    }
+
     private static RateLimitDashboardSnapshot CreateSnapshot(int primaryUsed, int weeklyUsed)
     {
         var now = DateTimeOffset.Now;

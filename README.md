@@ -9,7 +9,7 @@ It uses the official Codex app-server protocol, asks only for `account/rateLimit
 - Tray-first Windows app with a compact WPF dashboard.
 - Shows 5-hour and weekly reset timers, exact local reset time, remaining percent, and reset credit count.
 - Shows compact live 5-hour and weekly remaining percentages in the tray tooltip, with exact reset times in the tray context menu.
-- Optional low-remaining alerts from the tray menu, with Windows notifications plus an in-app notification center.
+- Global tray-menu notification mute, plus optional low-remaining alerts with Windows notifications and an in-app notification center.
 - Detects newly stacked manual reset credits and direct rate-limit resets that happen before the scheduled reset time.
 - Optional per-user "Start with Windows" setting in the tray menu for tray-first startup.
 - Draws a crisp, multi-resolution dynamic tray icon: outer 5-hour signal plus inner weekly signal, coloured by state (fresh, watch, near, limited), with a compact 16 px rendering for taskbar legibility.

@@ -134,6 +134,54 @@ public sealed class DashboardNotificationTests
     }
 
     [Fact]
+    public async Task RefreshAsync_does_not_record_or_raise_notifications_when_notifications_are_disabled()
+    {
+        var now = DateTimeOffset.Now;
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                CreateSnapshot(now, primaryUsed: 80, weeklyUsed: 30, credits: 2),
+                CreateSnapshot(now.AddMinutes(1), primaryUsed: 92, weeklyUsed: 30, credits: 4),
+                CreateSnapshot(now.AddMinutes(2), primaryUsed: 0, weeklyUsed: 30, credits: 4, primaryReset: now.AddHours(5))),
+            alertSettingsService: new StubAlertSettingsService(thresholdPercent: 10, notificationsEnabled: false));
+        var notifications = CaptureNotifications(viewModel);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync(isSilent: true);
+        await viewModel.RefreshAsync(isSilent: true);
+
+        Assert.Empty(notifications);
+        Assert.Empty(viewModel.Notifications);
+        Assert.Equal(0, viewModel.UnreadNotificationCount);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_reseeds_alert_state_while_notifications_are_disabled()
+    {
+        var now = DateTimeOffset.Now;
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                CreateSnapshot(now, primaryUsed: 80, weeklyUsed: 30, credits: 2),
+                CreateSnapshot(now.AddMinutes(1), primaryUsed: 92, weeklyUsed: 30, credits: 2),
+                CreateSnapshot(now.AddMinutes(2), primaryUsed: 94, weeklyUsed: 30, credits: 2),
+                CreateSnapshot(now.AddMinutes(3), primaryUsed: 70, weeklyUsed: 30, credits: 2),
+                CreateSnapshot(now.AddMinutes(4), primaryUsed: 93, weeklyUsed: 30, credits: 2)),
+            alertSettingsService: new StubAlertSettingsService(thresholdPercent: 10, notificationsEnabled: false));
+        var notifications = CaptureNotifications(viewModel);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync(isSilent: true);
+        viewModel.NotificationsEnabled = true;
+        await viewModel.RefreshAsync(isSilent: true);
+        await viewModel.RefreshAsync(isSilent: true);
+        await viewModel.RefreshAsync(isSilent: true);
+
+        var notification = Assert.Single(notifications);
+        Assert.Equal("Low Codex capacity", notification.Title);
+        Assert.Contains("5-hour 7% left", notification.Text);
+        Assert.Single(viewModel.Notifications);
+    }
+
+    [Fact]
     public async Task MarkNotificationsReadCommand_clears_unread_badge_without_deleting_history()
     {
         var now = DateTimeOffset.Now;

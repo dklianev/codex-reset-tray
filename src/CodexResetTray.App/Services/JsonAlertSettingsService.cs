@@ -29,7 +29,17 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
         get => _settings.LowRemainingThresholdPercent;
         set
         {
-            _settings = _settings with { LowRemainingThresholdPercent = Sanitize(value) };
+            _settings.LowRemainingThresholdPercent = Sanitize(value);
+            Save();
+        }
+    }
+
+    public bool NotificationsEnabled
+    {
+        get => _settings.NotificationsEnabled;
+        set
+        {
+            _settings.NotificationsEnabled = value;
             Save();
         }
     }
@@ -43,19 +53,21 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
         {
             if (!File.Exists(path))
             {
-                return new AppSettings(DefaultThresholdPercent);
+                return new AppSettings();
             }
 
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings(DefaultThresholdPercent);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            settings.LowRemainingThresholdPercent = Sanitize(settings.LowRemainingThresholdPercent);
+            return settings;
         }
         catch (IOException)
         {
-            return new AppSettings(DefaultThresholdPercent);
+            return new AppSettings();
         }
         catch (JsonException)
         {
-            return new AppSettings(DefaultThresholdPercent);
+            return new AppSettings();
         }
     }
 
@@ -70,5 +82,10 @@ public sealed class JsonAlertSettingsService : IAlertSettingsService
         File.WriteAllText(_settingsPath, JsonSerializer.Serialize(_settings, JsonOptions));
     }
 
-    private sealed record AppSettings(int? LowRemainingThresholdPercent);
+    private sealed class AppSettings
+    {
+        public int? LowRemainingThresholdPercent { get; set; } = DefaultThresholdPercent;
+
+        public bool NotificationsEnabled { get; set; } = true;
+    }
 }

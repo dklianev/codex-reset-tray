@@ -19,4 +19,5 @@
 - Refreshed the application/window icon to a matching emerald-to-cyan ring mark.
 - Added configurable low-remaining alerts, manual reset credit notifications, and direct reset detection.
 - Added an in-app notification center with a title-bar bell, unread badge, and compact alert history.
+- Added a persisted global notification mute in the tray menu.
 - Improved tray hover text and tray menu reset details, including exact local reset times.

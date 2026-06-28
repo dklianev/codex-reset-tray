@@ -47,6 +47,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _signalCaption = "No live snapshot yet";
     private string _settingsStatusText = "Startup setting unavailable";
     private string _lowRemainingAlertThresholdText = "Low alerts: off";
+    private string _notificationsEnabledText = "Notifications: on";
     private int _heroPercent;
     private int _primaryUsedPercent;
     private int _weeklyUsedPercent;
@@ -61,6 +62,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private bool _hasUnreadNotifications;
     private bool _hasNotifications;
     private bool _isNotificationsOpen;
+    private bool _notificationsEnabled = true;
     private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
     public DashboardViewModel(
@@ -271,6 +273,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _lowRemainingAlertThresholdPercent;
         set => SetLowRemainingAlertThresholdPercent(value);
+    }
+
+    public string NotificationsEnabledText
+    {
+        get => _notificationsEnabledText;
+        private set => SetProperty(ref _notificationsEnabledText, value);
+    }
+
+    public bool NotificationsEnabled
+    {
+        get => _notificationsEnabled;
+        set => SetNotificationsEnabled(value);
     }
 
     public int UnreadNotificationCount
@@ -603,12 +617,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             _lowRemainingAlertThresholdPercent = _alertSettingsService?.LowRemainingThresholdPercent;
+            _notificationsEnabled = _alertSettingsService?.NotificationsEnabled ?? true;
             LowRemainingAlertThresholdText = FormatLowRemainingAlertThresholdText(_lowRemainingAlertThresholdPercent);
+            NotificationsEnabledText = FormatNotificationsEnabledText(_notificationsEnabled);
         }
         catch (Exception ex)
         {
             _lowRemainingAlertThresholdPercent = null;
+            _notificationsEnabled = true;
             LowRemainingAlertThresholdText = "Low alerts: unavailable";
+            NotificationsEnabledText = "Notifications: unavailable";
             ErrorText = SecretRedactor.Redact($"Could not read alert settings: {ex.Message}");
         }
     }
@@ -641,6 +659,39 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
     private static string FormatLowRemainingAlertThresholdText(int? threshold) =>
         threshold is { } value ? $"Low alerts: {value}% left" : "Low alerts: off";
+
+    private void SetNotificationsEnabled(bool value)
+    {
+        if (value == _notificationsEnabled)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_alertSettingsService is not null)
+            {
+                _alertSettingsService.NotificationsEnabled = value;
+            }
+
+            if (SetProperty(ref _notificationsEnabled, value, nameof(NotificationsEnabled)))
+            {
+                NotificationsEnabledText = FormatNotificationsEnabledText(value);
+                if (!value)
+                {
+                    ReseedLowAlertState(_previousSnapshot);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorText = SecretRedactor.Redact($"Could not update notification settings: {ex.Message}");
+            OnPropertyChanged(nameof(NotificationsEnabled));
+        }
+    }
+
+    private static string FormatNotificationsEnabledText(bool enabled) =>
+        enabled ? "Notifications: on" : "Notifications: off";
 
     private Task MarkNotificationsReadAsync()
     {
@@ -837,6 +888,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
     private void AddNotification(TrayNotification notification)
     {
+        if (!NotificationsEnabled)
+        {
+            return;
+        }
+
         Notifications.Insert(0, new NotificationViewModel(notification, isUnread: true));
         while (Notifications.Count > 25)
         {

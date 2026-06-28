@@ -14,6 +14,7 @@ public sealed class TrayController : IDisposable
     private Forms.ToolStripMenuItem? _fiveHourItem;
     private Forms.ToolStripMenuItem? _weeklyItem;
     private Forms.ToolStripMenuItem? _creditsItem;
+    private Forms.ToolStripMenuItem? _notificationsItem;
     private Forms.ToolStripMenuItem? _alertsItem;
     private readonly List<(int? Threshold, Forms.ToolStripMenuItem Item)> _alertThresholdItems = new();
     private System.Drawing.Icon? _currentIcon;
@@ -34,6 +35,11 @@ public sealed class TrayController : IDisposable
         _startWithWindowsItem = new Forms.ToolStripMenuItem("Start with Windows", null, (_, _) =>
         {
             _dashboard.StartWithWindowsEnabled = !_dashboard.StartWithWindowsEnabled;
+            UpdateTooltip();
+        });
+        _notificationsItem = new Forms.ToolStripMenuItem(_dashboard.NotificationsEnabledText, null, (_, _) =>
+        {
+            _dashboard.NotificationsEnabled = !_dashboard.NotificationsEnabled;
             UpdateTooltip();
         });
         _alertsItem = BuildAlertsMenu();
@@ -71,6 +77,7 @@ public sealed class TrayController : IDisposable
         _notifyIcon.ContextMenuStrip.Items.Add(openItem);
         _notifyIcon.ContextMenuStrip.Items.Add(refreshItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_startWithWindowsItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_notificationsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_alertsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(exitItem);
@@ -90,6 +97,8 @@ public sealed class TrayController : IDisposable
             or nameof(DashboardViewModel.TrayWeeklyPercent)
             or nameof(DashboardViewModel.StartWithWindowsEnabled)
             or nameof(DashboardViewModel.StartupSettingAvailable)
+            or nameof(DashboardViewModel.NotificationsEnabled)
+            or nameof(DashboardViewModel.NotificationsEnabledText)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdPercent)
             or nameof(DashboardViewModel.LowRemainingAlertThresholdText)))
         {
@@ -147,9 +156,16 @@ public sealed class TrayController : IDisposable
             _startWithWindowsItem.Enabled = _dashboard.StartupSettingAvailable;
         }
 
+        if (_notificationsItem is not null)
+        {
+            _notificationsItem.Text = _dashboard.NotificationsEnabledText;
+            _notificationsItem.Checked = _dashboard.NotificationsEnabled;
+        }
+
         if (_alertsItem is not null)
         {
             _alertsItem.Text = _dashboard.LowRemainingAlertThresholdText;
+            _alertsItem.Enabled = _dashboard.NotificationsEnabled;
             foreach (var (threshold, item) in _alertThresholdItems)
             {
                 item.Checked = threshold == _dashboard.LowRemainingAlertThresholdPercent;
@@ -189,7 +205,7 @@ public sealed class TrayController : IDisposable
 
     private void OnNotificationRequested(object? sender, TrayNotification notification)
     {
-        if (_notifyIcon is null)
+        if (_notifyIcon is null || !_dashboard.NotificationsEnabled)
         {
             return;
         }
