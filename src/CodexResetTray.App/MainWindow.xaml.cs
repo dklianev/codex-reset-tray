@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private const double CornerRadius = 18.0; // matches the shell border radius
 
     private const int WM_NCHITTEST = 0x0084;
+    private const int HTCAPTION = 2;
     private const int HTLEFT = 10, HTRIGHT = 11, HTTOP = 12, HTTOPLEFT = 13,
         HTTOPRIGHT = 14, HTBOTTOM = 15, HTBOTTOMLEFT = 16, HTBOTTOMRIGHT = 17;
 
@@ -84,26 +85,24 @@ public partial class MainWindow : Window
         }
 
         var code = ResizeHitTest(lParam);
-        if (code == 0)
+        if (code != 0)
         {
-            return IntPtr.Zero; // fall through to WPF's default client/transparent hit-testing
+            handled = true;
+            return new IntPtr(code);
         }
 
-        handled = true;
-        return new IntPtr(code);
+        if (IsChromeDragHit(lParam))
+        {
+            handled = true;
+            return new IntPtr(HTCAPTION);
+        }
+
+        return IntPtr.Zero; // fall through to WPF's default client/transparent hit-testing
     }
 
     private int ResizeHitTest(IntPtr lParam)
     {
-        var packed = lParam.ToInt64();
-        var screen = new Point((short)(packed & 0xFFFF), (short)((packed >> 16) & 0xFFFF));
-
-        Point p;
-        try
-        {
-            p = PointFromScreen(screen);
-        }
-        catch (InvalidOperationException)
+        if (!TryGetWindowPoint(lParam, out var p))
         {
             return 0;
         }
@@ -127,6 +126,73 @@ public partial class MainWindow : Window
             (_, _, _, true) => HTRIGHT,
             _ => 0,
         };
+    }
+
+    private bool IsChromeDragHit(IntPtr lParam)
+    {
+        if (!TryGetWindowPoint(lParam, out var p))
+        {
+            return false;
+        }
+
+        if (IsPointInside(NotificationsButton, p)
+            || IsPointInside(CloseButton, p)
+            || IsPointInside(NotificationPanel, p))
+        {
+            return false;
+        }
+
+        var titleBottom = ShadowMargin + 52.0;
+        try
+        {
+            var titleOrigin = TitleBar.TransformToAncestor(this).Transform(new Point(0, 0));
+            titleBottom = Math.Max(titleBottom, titleOrigin.Y + TitleBar.ActualHeight);
+        }
+        catch (InvalidOperationException)
+        {
+            // Keep the conservative fallback for early native hit-tests.
+        }
+
+        return p.X >= ShadowMargin
+            && p.X <= ActualWidth - ShadowMargin
+            && p.Y >= ShadowMargin + ResizeBand
+            && p.Y <= titleBottom;
+    }
+
+    private bool TryGetWindowPoint(IntPtr lParam, out Point point)
+    {
+        var packed = lParam.ToInt64();
+        var screen = new Point((short)(packed & 0xFFFF), (short)((packed >> 16) & 0xFFFF));
+
+        try
+        {
+            point = PointFromScreen(screen);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            point = default;
+            return false;
+        }
+    }
+
+    private bool IsPointInside(FrameworkElement element, Point windowPoint)
+    {
+        if (!element.IsVisible || element.ActualWidth <= 0 || element.ActualHeight <= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            var origin = element.TransformToAncestor(this).Transform(new Point(0, 0));
+            var bounds = new Rect(origin, new System.Windows.Size(element.ActualWidth, element.ActualHeight));
+            return bounds.Contains(windowPoint);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

@@ -227,8 +227,9 @@
                         <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{StaticResource MutedInkBrush}" TextWrapping="NoWrap" />
                     </StackPanel>
-                    <Button Grid.Column="3" Command="{Binding ToggleNotificationsCommand}" Style="{StaticResource ChromeIconButton}"
-                            VerticalAlignment="Center" ToolTip="Notifications">
+                    <Button Grid.Column="3" x:Name="NotificationsButton" Command="{Binding ToggleNotificationsCommand}"
+                            Style="{StaticResource ChromeIconButton}" VerticalAlignment="Center"
+                            ToolTip="Notifications" AutomationProperties.Name="Notifications">
                         <Grid Width="20" Height="20">
                             <Path Width="15" Height="15" Stretch="Uniform"
                                   Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
@@ -243,7 +244,8 @@
                         </Grid>
                     </Button>
                     <Button Grid.Column="4" x:Name="CloseButton" Style="{StaticResource ChromeCloseButton}"
-                            VerticalAlignment="Center" Click="CloseButton_Click" />
+                            VerticalAlignment="Center" Click="CloseButton_Click"
+                            ToolTip="Hide to tray" AutomationProperties.Name="Hide to tray" />
                 </Grid>
 
                 <!-- ===== CONTENT ===== -->
@@ -379,7 +381,7 @@
                                                        DockPanel.Dock="Right" Foreground="{StaticResource MutedInkBrush}" />
                                         </DockPanel>
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Content="Opt-in" IsChecked="{Binding ResetCreditExpiryLookupEnabled, Mode=TwoWay}"
+                                    <CheckBox Grid.Column="1" Content="Expiry lookup" IsChecked="{Binding ResetCreditExpiryLookupEnabled, Mode=TwoWay}"
                                               Style="{StaticResource InlineToggleCheckBox}" VerticalAlignment="Top" Margin="14,1,0,0"
                                               ToolTip="Enable reset-credit expiry lookup" />
                                 </Grid>
@@ -406,22 +408,15 @@
                 </ScrollViewer>
 
                 <!-- ===== FOOTER ===== -->
-                <Border Grid.Row="2" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="20,14,20,18">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="10" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Read-only • auth only for opt-in expiry" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" />
-                        <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
-                    </Grid>
+                <Border Grid.Row="2" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="20,12,20,16">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" />
+                        <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
+                    </StackPanel>
                 </Border>
             </Grid>
 
-            <Border Panel.ZIndex="20" Style="{StaticResource NotificationPanelStyle}"
+            <Border x:Name="NotificationPanel" Panel.ZIndex="20" Style="{StaticResource NotificationPanelStyle}"
                     HorizontalAlignment="Right" VerticalAlignment="Top"
                     Width="320" MaxHeight="420" Margin="0,58,26,0">
                 <Grid>
