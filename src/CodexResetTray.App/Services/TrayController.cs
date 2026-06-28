@@ -10,6 +10,7 @@ public sealed class TrayController : IDisposable
     private readonly MainWindow _window;
     private readonly DashboardViewModel _dashboard;
     private Forms.NotifyIcon? _notifyIcon;
+    private Forms.ToolStripMenuItem? _startWithWindowsItem;
     private Forms.ToolStripMenuItem? _fiveHourItem;
     private Forms.ToolStripMenuItem? _weeklyItem;
     private Forms.ToolStripMenuItem? _creditsItem;
@@ -27,6 +28,11 @@ public sealed class TrayController : IDisposable
     {
         var openItem = new Forms.ToolStripMenuItem("Open dashboard", null, (_, _) => _window.ShowDashboard());
         var refreshItem = new Forms.ToolStripMenuItem("Refresh", null, async (_, _) => await _dashboard.RefreshAsync());
+        _startWithWindowsItem = new Forms.ToolStripMenuItem("Start with Windows", null, (_, _) =>
+        {
+            _dashboard.StartWithWindowsEnabled = !_dashboard.StartWithWindowsEnabled;
+            UpdateTooltip();
+        });
         var exitItem = new Forms.ToolStripMenuItem("Exit", null, (_, _) =>
         {
             _window.ForceClose();
@@ -60,6 +66,7 @@ public sealed class TrayController : IDisposable
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(openItem);
         _notifyIcon.ContextMenuStrip.Items.Add(refreshItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_startWithWindowsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(exitItem);
         _notifyIcon.DoubleClick += (_, _) => _window.ShowDashboard();
@@ -75,7 +82,9 @@ public sealed class TrayController : IDisposable
             or nameof(DashboardViewModel.TrayMenuWeeklyText)
             or nameof(DashboardViewModel.TrayMenuCreditsText)
             or nameof(DashboardViewModel.TrayPrimaryPercent)
-            or nameof(DashboardViewModel.TrayWeeklyPercent)))
+            or nameof(DashboardViewModel.TrayWeeklyPercent)
+            or nameof(DashboardViewModel.StartWithWindowsEnabled)
+            or nameof(DashboardViewModel.StartupSettingAvailable)))
         {
             return;
         }
@@ -123,6 +132,12 @@ public sealed class TrayController : IDisposable
         if (_creditsItem is not null)
         {
             _creditsItem.Text = _dashboard.TrayMenuCreditsText;
+        }
+
+        if (_startWithWindowsItem is not null)
+        {
+            _startWithWindowsItem.Checked = _dashboard.StartWithWindowsEnabled;
+            _startWithWindowsItem.Enabled = _dashboard.StartupSettingAvailable;
         }
 
         var previousIcon = _currentIcon;

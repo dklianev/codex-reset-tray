@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows.Threading;
 using CodexResetTray.App.Services;
 using CodexResetTray.App.ViewModels;
+using CodexResetTray.Core.Startup;
 
 namespace CodexResetTray.App;
 
@@ -35,7 +36,8 @@ public partial class App : System.Windows.Application
         _ownsSingleInstanceMutex = true;
 
         var source = new CodexAppServerRateLimitSource();
-        _dashboard = new DashboardViewModel(source, _shutdown.Token);
+        var startup = new WindowsStartupService();
+        _dashboard = new DashboardViewModel(source, _shutdown.Token, startup);
         _window = new MainWindow(_dashboard);
         MainWindow = _window;
         _dashboard.ExitRequested += OnExitRequested;
@@ -51,7 +53,11 @@ public partial class App : System.Windows.Application
         _refreshTimer.Tick += async (_, _) => await _dashboard.RefreshAsync(isSilent: true, cancellationToken: _shutdown.Token);
         _refreshTimer.Start();
 
-        _window.Show();
+        if (!e.Args.Contains(WindowsStartupCommandFormatter.MinimizedArgument, StringComparer.OrdinalIgnoreCase))
+        {
+            _window.Show();
+        }
+
         await _dashboard.RefreshAsync(cancellationToken: _shutdown.Token);
     }
 

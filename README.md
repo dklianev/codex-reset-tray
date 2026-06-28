@@ -7,8 +7,9 @@ It uses the official Codex app-server protocol, asks only for `account/rateLimit
 ## Features
 
 - Tray-first Windows app with a compact WPF dashboard.
-- Shows 5-hour and weekly reset timers, exact local reset time, used percent, and reset credit count.
-- Shows live 5-hour and weekly percentages in the tray tooltip and tray context menu.
+- Shows 5-hour and weekly reset timers, exact local reset time, remaining percent, and reset credit count.
+- Shows live 5-hour and weekly remaining percentages in the tray tooltip and tray context menu.
+- Optional per-user "Start with Windows" setting in the tray menu for tray-first startup.
 - Draws a crisp, multi-resolution dynamic tray icon: one bold ring that fills with your 5-hour load and is coloured by state (fresh, watch, near, limited), legible at 16 px on light and dark taskbars.
 - Ships a branded multi-resolution application/window icon, generated reproducibly from `packaging/generate-app-icon.ps1`.
 - Uses `codex app-server --listen stdio://` instead of scraping logs or reading auth files.

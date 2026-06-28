@@ -1,9 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using CodexResetTray.App.Services;
@@ -19,6 +16,7 @@ namespace CodexResetTray.App.ViewModels;
 public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IRateLimitSource _source;
+    private readonly IStartupService? _startupService;
     private readonly AsyncRelayCommand _refreshCommand;
     private readonly CancellationToken _shutdownToken;
     private bool _isBusy;
@@ -33,31 +31,42 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _trayMenuWeeklyText = "Weekly: checking";
     private string _trayMenuCreditsText = "Reset credits: checking";
     private string _mainLimitName = "Codex";
-    private string _primaryUsageText = "--";
-    private string _weeklyUsageText = "--";
+    private string _primaryRemainingText = "--";
+    private string _weeklyRemainingText = "--";
+    private string _primaryRemainingValueText = "--";
+    private string _weeklyRemainingValueText = "--";
     private string _primaryResetText = "Waiting";
     private string _weeklyResetText = "Waiting";
     private string _primaryExactText = string.Empty;
     private string _weeklyExactText = string.Empty;
     private string _signalCaption = "No live snapshot yet";
+    private string _settingsStatusText = "Startup setting unavailable";
     private int _heroPercent;
-    private int _primaryPercent;
-    private int _weeklyPercent;
+    private int _primaryUsedPercent;
+    private int _weeklyUsedPercent;
+    private int _primaryRemainingPercent;
+    private int _weeklyRemainingPercent;
     private int? _trayPrimaryPercent;
     private int? _trayWeeklyPercent;
+    private bool _startWithWindowsEnabled;
+    private bool _startupSettingAvailable;
     private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
-    public DashboardViewModel(IRateLimitSource source, CancellationToken shutdownToken = default)
+    public DashboardViewModel(
+        IRateLimitSource source,
+        CancellationToken shutdownToken = default,
+        IStartupService? startupService = null)
     {
         _source = source;
+        _startupService = startupService;
         _shutdownToken = shutdownToken;
         _refreshCommand = new AsyncRelayCommand(() => RefreshAsync(), () => !IsBusy);
-        OpenCodexDocsCommand = new AsyncRelayCommand(OpenCodexDocsAsync);
         ExitCommand = new AsyncRelayCommand(() =>
         {
             ExitRequested?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         });
+        LoadStartupSetting();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -69,8 +78,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<BucketViewModel> Buckets { get; } = new();
 
     public ICommand RefreshCommand => _refreshCommand;
-
-    public ICommand OpenCodexDocsCommand { get; }
 
     public ICommand ExitCommand { get; }
 
@@ -164,16 +171,28 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _mainLimitName, value);
     }
 
-    public string PrimaryUsageText
+    public string PrimaryRemainingText
     {
-        get => _primaryUsageText;
-        private set => SetProperty(ref _primaryUsageText, value);
+        get => _primaryRemainingText;
+        private set => SetProperty(ref _primaryRemainingText, value);
     }
 
-    public string WeeklyUsageText
+    public string WeeklyRemainingText
     {
-        get => _weeklyUsageText;
-        private set => SetProperty(ref _weeklyUsageText, value);
+        get => _weeklyRemainingText;
+        private set => SetProperty(ref _weeklyRemainingText, value);
+    }
+
+    public string PrimaryRemainingValueText
+    {
+        get => _primaryRemainingValueText;
+        private set => SetProperty(ref _primaryRemainingValueText, value);
+    }
+
+    public string WeeklyRemainingValueText
+    {
+        get => _weeklyRemainingValueText;
+        private set => SetProperty(ref _weeklyRemainingValueText, value);
     }
 
     public string PrimaryResetText
@@ -212,16 +231,46 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _heroPercent, value);
     }
 
-    public int PrimaryPercent
+    public string SettingsStatusText
     {
-        get => _primaryPercent;
-        private set => SetProperty(ref _primaryPercent, value);
+        get => _settingsStatusText;
+        private set => SetProperty(ref _settingsStatusText, value);
     }
 
-    public int WeeklyPercent
+    public int PrimaryUsedPercent
     {
-        get => _weeklyPercent;
-        private set => SetProperty(ref _weeklyPercent, value);
+        get => _primaryUsedPercent;
+        private set => SetProperty(ref _primaryUsedPercent, value);
+    }
+
+    public int WeeklyUsedPercent
+    {
+        get => _weeklyUsedPercent;
+        private set => SetProperty(ref _weeklyUsedPercent, value);
+    }
+
+    public int PrimaryRemainingPercent
+    {
+        get => _primaryRemainingPercent;
+        private set => SetProperty(ref _primaryRemainingPercent, value);
+    }
+
+    public int WeeklyRemainingPercent
+    {
+        get => _weeklyRemainingPercent;
+        private set => SetProperty(ref _weeklyRemainingPercent, value);
+    }
+
+    public bool StartupSettingAvailable
+    {
+        get => _startupSettingAvailable;
+        private set => SetProperty(ref _startupSettingAvailable, value);
+    }
+
+    public bool StartWithWindowsEnabled
+    {
+        get => _startWithWindowsEnabled;
+        set => SetStartWithWindowsEnabled(value);
     }
 
     public MediaBrush StatusBrush
@@ -323,14 +372,20 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
         var primaryPercent = ClampPercent(main?.Primary?.UsedPercent);
         var weeklyPercent = ClampPercent(main?.Secondary?.UsedPercent);
+        var primaryRemaining = RateLimitPercentFormatter.RemainingPercent(primaryPercent ?? 100);
+        var weeklyRemaining = RateLimitPercentFormatter.RemainingPercent(weeklyPercent ?? 100);
 
-        PrimaryPercent = primaryPercent ?? 0;
-        WeeklyPercent = weeklyPercent ?? 0;
+        PrimaryUsedPercent = primaryPercent ?? 0;
+        WeeklyUsedPercent = weeklyPercent ?? 0;
+        PrimaryRemainingPercent = primaryPercent.HasValue ? primaryRemaining : 0;
+        WeeklyRemainingPercent = weeklyPercent.HasValue ? weeklyRemaining : 0;
         TrayPrimaryPercent = primaryPercent;
         TrayWeeklyPercent = weeklyPercent;
 
-        PrimaryUsageText = primaryPercent is { } primary ? $"{primary}%" : "--";
-        WeeklyUsageText = weeklyPercent is { } weekly ? $"{weekly}%" : "--";
+        PrimaryRemainingText = RateLimitPercentFormatter.FormatOptionalRemainingPercent(primaryPercent);
+        WeeklyRemainingText = RateLimitPercentFormatter.FormatOptionalRemainingPercent(weeklyPercent);
+        PrimaryRemainingValueText = RateLimitPercentFormatter.FormatOptionalRemainingPercentValue(primaryPercent);
+        WeeklyRemainingValueText = RateLimitPercentFormatter.FormatOptionalRemainingPercentValue(weeklyPercent);
 
         PrimaryResetText = FormatResetRelative(main?.Primary?.ResetsAt);
         WeeklyResetText = FormatResetRelative(main?.Secondary?.ResetsAt);
@@ -377,7 +432,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         var primaryReset = FormatResetRelative(main.Primary?.ResetsAt);
         var weeklyReset = FormatResetRelative(main.Secondary?.ResetsAt);
 
-        return $"Codex: 5h {primaryPercent} reset {primaryReset}; wk {weeklyPercent} reset {weeklyReset}";
+        return $"Codex: 5h {primaryPercent}, reset {primaryReset}; wk {weeklyPercent}, reset {weeklyReset}";
     }
 
     private static string BuildTrayStatusText(RateLimitBucket? main, long? credits)
@@ -409,10 +464,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         TrayPrimaryPercent = null;
         TrayWeeklyPercent = null;
         MainLimitName = "Codex";
-        PrimaryPercent = 0;
-        WeeklyPercent = 0;
-        PrimaryUsageText = "--";
-        WeeklyUsageText = "--";
+        PrimaryUsedPercent = 0;
+        WeeklyUsedPercent = 0;
+        PrimaryRemainingPercent = 0;
+        WeeklyRemainingPercent = 0;
+        PrimaryRemainingText = "--";
+        WeeklyRemainingText = "--";
+        PrimaryRemainingValueText = "--";
+        WeeklyRemainingValueText = "--";
         PrimaryResetText = "Unavailable";
         WeeklyResetText = "Unavailable";
         PrimaryExactText = string.Empty;
@@ -428,7 +487,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         percent is { } value ? Math.Clamp(value, 0, 100) : null;
 
     private static string FormatPercent(int? percent) =>
-        percent is { } value ? $"{value}%" : "--";
+        RateLimitPercentFormatter.FormatOptionalRemainingPercent(percent);
 
     private static string FormatResetRelative(DateTimeOffset? resetAt) =>
         resetAt is { } value ? ResetTimeFormatter.FormatRelative(value, DateTimeOffset.Now) : "unknown";
@@ -440,10 +499,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         var loadText = (primaryPercent, weeklyPercent) switch
         {
-            ({ } primary, { } weekly) => $"5h {primary}% / weekly {weekly}%",
-            ({ } primary, null) => $"5h {primary}% / weekly unknown",
-            (null, { } weekly) => $"5h unknown / weekly {weekly}%",
-            _ => "usage unknown"
+            ({ } primary, { } weekly) => $"5h {RateLimitPercentFormatter.FormatRemainingPercent(primary)} / weekly {RateLimitPercentFormatter.FormatRemainingPercent(weekly)}",
+            ({ } primary, null) => $"5h {RateLimitPercentFormatter.FormatRemainingPercent(primary)} / weekly unknown",
+            (null, { } weekly) => $"5h unknown / weekly {RateLimitPercentFormatter.FormatRemainingPercent(weekly)}",
+            _ => "capacity unknown"
         };
         var creditText = credits is { } value ? $" / credits {value}" : string.Empty;
         return $"{loadText}{creditText}";
@@ -453,27 +512,57 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         var percent = FormatPercent(ClampPercent(window?.UsedPercent));
         var reset = FormatResetRelative(window?.ResetsAt);
-        return $"{label}: {percent} used, resets {reset}";
+        return $"{label}: {percent}, resets {reset}";
     }
 
-    private Task OpenCodexDocsAsync()
+    private void LoadStartupSetting()
     {
+        if (_startupService is null)
+        {
+            StartupSettingAvailable = false;
+            SettingsStatusText = "Startup setting unavailable";
+            return;
+        }
+
         try
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "https://developers.openai.com/codex/app-server.md",
-                UseShellExecute = true
-            });
+            _startWithWindowsEnabled = _startupService.IsEnabled;
+            StartupSettingAvailable = true;
+            SettingsStatusText = _startWithWindowsEnabled ? "Starts with Windows" : "Manual start";
         }
         catch (Exception ex)
         {
-            // The docs button must never crash the resident app, whatever the
-            // shell throws (no handler, restricted policy, platform quirk).
-            ErrorText = SecretRedactor.Redact($"Could not open the docs link: {ex.Message}");
+            StartupSettingAvailable = false;
+            SettingsStatusText = "Startup setting unavailable";
+            ErrorText = SecretRedactor.Redact($"Could not read startup setting: {ex.Message}");
+        }
+    }
+
+    private void SetStartWithWindowsEnabled(bool value)
+    {
+        if (value == _startWithWindowsEnabled)
+        {
+            return;
         }
 
-        return Task.CompletedTask;
+        if (_startupService is null || !StartupSettingAvailable)
+        {
+            OnPropertyChanged(nameof(StartWithWindowsEnabled));
+            return;
+        }
+
+        try
+        {
+            _startupService.SetEnabled(value);
+            SetProperty(ref _startWithWindowsEnabled, value, nameof(StartWithWindowsEnabled));
+            SettingsStatusText = value ? "Starts with Windows" : "Manual start";
+        }
+        catch (Exception ex)
+        {
+            SettingsStatusText = "Could not update startup setting";
+            ErrorText = SecretRedactor.Redact($"Could not update startup setting: {ex.Message}");
+            OnPropertyChanged(nameof(StartWithWindowsEnabled));
+        }
     }
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
@@ -484,9 +573,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         }
 
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        OnPropertyChanged(propertyName);
         return true;
     }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     public void Dispose()
     {

@@ -44,11 +44,12 @@ public sealed class BucketViewModel
 
 public sealed class WindowViewModel
 {
-    private WindowViewModel(string label, int usedPercent, string usedText, string resetsText, string exactText)
+    private WindowViewModel(string label, int usedPercent, int remainingPercent, string remainingText, string resetsText, string exactText)
     {
         Label = label;
         UsedPercent = usedPercent;
-        UsedText = usedText;
+        RemainingPercent = remainingPercent;
+        RemainingText = remainingText;
         ResetsText = resetsText;
         ExactText = exactText;
     }
@@ -57,7 +58,9 @@ public sealed class WindowViewModel
 
     public int UsedPercent { get; }
 
-    public string UsedText { get; }
+    public int RemainingPercent { get; }
+
+    public string RemainingText { get; }
 
     public string ResetsText { get; }
 
@@ -67,7 +70,7 @@ public sealed class WindowViewModel
     {
         if (window is null)
         {
-            return new WindowViewModel(fallbackLabel, 0, "No data", "Waiting for Codex", string.Empty);
+            return new WindowViewModel(fallbackLabel, 0, 0, "No data", "Waiting for Codex", string.Empty);
         }
 
         var now = DateTimeOffset.Now;
@@ -78,7 +81,14 @@ public sealed class WindowViewModel
             ? ResetTimeFormatter.FormatExact(exact, TimeZoneInfo.Local)
             : string.Empty;
         var used = Math.Clamp(window.UsedPercent, 0, 100);
+        var remaining = RateLimitPercentFormatter.RemainingPercent(used);
 
-        return new WindowViewModel(window.Label, used, $"{used}% used", resetText, exactText);
+        return new WindowViewModel(
+            window.Label,
+            used,
+            remaining,
+            RateLimitPercentFormatter.FormatRemainingPercent(used),
+            resetText,
+            exactText);
     }
 }

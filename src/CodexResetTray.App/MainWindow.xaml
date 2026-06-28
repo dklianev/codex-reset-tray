@@ -71,20 +71,20 @@
                         <StackPanel>
                             <DockPanel LastChildFill="False" Margin="0,0,0,6">
                                 <TextBlock Text="{Binding Primary.Label}" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Text="{Binding Primary.UsedText}" DockPanel.Dock="Right"
+                                <TextBlock Text="{Binding Primary.RemainingText}" DockPanel.Dock="Right"
                                            Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" />
                             </DockPanel>
-                            <ProgressBar Value="{Binding Primary.UsedPercent, Mode=OneWay}" Maximum="100"
+                            <ProgressBar Value="{Binding Primary.RemainingPercent, Mode=OneWay}" Maximum="100"
                                          Foreground="{Binding Primary.UsedPercent, Converter={StaticResource GaugeBrush}}" />
                             <TextBlock Text="{Binding Primary.ResetsText}" Style="{StaticResource MonoCaption}" Margin="0,7,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <DockPanel LastChildFill="False" Margin="0,0,0,6">
                                 <TextBlock Text="{Binding Secondary.Label}" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Text="{Binding Secondary.UsedText}" DockPanel.Dock="Right"
+                                <TextBlock Text="{Binding Secondary.RemainingText}" DockPanel.Dock="Right"
                                            Style="{StaticResource MonoCaption}" Foreground="{StaticResource InkBrush}" />
                             </DockPanel>
-                            <ProgressBar Value="{Binding Secondary.UsedPercent, Mode=OneWay}" Maximum="100"
+                            <ProgressBar Value="{Binding Secondary.RemainingPercent, Mode=OneWay}" Maximum="100"
                                          Foreground="{Binding Secondary.UsedPercent, Converter={StaticResource GaugeBrush}}" />
                             <TextBlock Text="{Binding Secondary.ResetsText}" Style="{StaticResource MonoCaption}" Margin="0,7,0,0" />
                         </StackPanel>
@@ -180,20 +180,20 @@
                             <!-- 5-hour gauge -->
                             <StackPanel Grid.Column="0">
                                 <Grid Width="176" Height="150">
-                                    <ctl:Gauge Percent="{Binding PrimaryPercent}" Thickness="15"
+                                    <ctl:Gauge Percent="{Binding PrimaryRemainingPercent}" Thickness="15"
                                                TrackBrush="{StaticResource GaugeTrackBrush}"
-                                               ProgressBrush="{Binding PrimaryPercent, Converter={StaticResource GaugeBrush}}">
+                                               ProgressBrush="{Binding PrimaryUsedPercent, Converter={StaticResource GaugeBrush}}">
                                         <ctl:Gauge.Effect>
                                             <DropShadowEffect ShadowDepth="0" BlurRadius="22" Opacity="0.55"
-                                                              Color="{Binding PrimaryPercent, Converter={StaticResource GlowColor}}" />
+                                                              Color="{Binding PrimaryUsedPercent, Converter={StaticResource GlowColor}}" />
                                         </ctl:Gauge.Effect>
                                     </ctl:Gauge>
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding PrimaryUsageText}" FontFamily="{StaticResource DisplayFont}"
+                                        <TextBlock Text="{Binding PrimaryRemainingValueText}" FontFamily="{StaticResource DisplayFont}"
                                                    FontSize="36" FontWeight="Bold" HorizontalAlignment="Center"
                                                    Typography.NumeralAlignment="Tabular"
-                                                   Foreground="{Binding PrimaryPercent, Converter={StaticResource GaugeBrush}}" />
-                                        <TextBlock Text="5-hour" Style="{StaticResource EyebrowText}" HorizontalAlignment="Center"
+                                                   Foreground="{Binding PrimaryUsedPercent, Converter={StaticResource GaugeBrush}}" />
+                                        <TextBlock Text="left • 5-hour" Style="{StaticResource EyebrowText}" HorizontalAlignment="Center"
                                                    Foreground="{StaticResource MutedInkBrush}" Margin="0,-2,0,0" />
                                     </StackPanel>
                                 </Grid>
@@ -206,20 +206,20 @@
                             <!-- weekly gauge -->
                             <StackPanel Grid.Column="1">
                                 <Grid Width="176" Height="150">
-                                    <ctl:Gauge Percent="{Binding WeeklyPercent}" Thickness="15"
+                                    <ctl:Gauge Percent="{Binding WeeklyRemainingPercent}" Thickness="15"
                                                TrackBrush="{StaticResource GaugeTrackBrush}"
-                                               ProgressBrush="{Binding WeeklyPercent, Converter={StaticResource GaugeBrush}}">
+                                               ProgressBrush="{Binding WeeklyUsedPercent, Converter={StaticResource GaugeBrush}}">
                                         <ctl:Gauge.Effect>
                                             <DropShadowEffect ShadowDepth="0" BlurRadius="22" Opacity="0.55"
-                                                              Color="{Binding WeeklyPercent, Converter={StaticResource GlowColor}}" />
+                                                              Color="{Binding WeeklyUsedPercent, Converter={StaticResource GlowColor}}" />
                                         </ctl:Gauge.Effect>
                                     </ctl:Gauge>
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding WeeklyUsageText}" FontFamily="{StaticResource DisplayFont}"
+                                        <TextBlock Text="{Binding WeeklyRemainingValueText}" FontFamily="{StaticResource DisplayFont}"
                                                    FontSize="36" FontWeight="Bold" HorizontalAlignment="Center"
                                                    Typography.NumeralAlignment="Tabular"
-                                                   Foreground="{Binding WeeklyPercent, Converter={StaticResource GaugeBrush}}" />
-                                        <TextBlock Text="weekly" Style="{StaticResource EyebrowText}" HorizontalAlignment="Center"
+                                                   Foreground="{Binding WeeklyUsedPercent, Converter={StaticResource GaugeBrush}}" />
+                                        <TextBlock Text="left • weekly" Style="{StaticResource EyebrowText}" HorizontalAlignment="Center"
                                                    Foreground="{StaticResource MutedInkBrush}" Margin="0,-2,0,0" />
                                     </StackPanel>
                                 </Grid>
