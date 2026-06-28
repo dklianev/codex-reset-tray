@@ -9,7 +9,7 @@ Codex Reset Tray has two projects: a pure core library and a Windows UI app.
 - `Protocol/AppServerProtocol.cs` creates the minimal app-server JSONL startup messages.
 - `Protocol/AppServerRateLimitParser.cs` parses current and future-tolerant rate-limit payloads.
 - `RateLimits/*` stores parsed buckets and windows.
-- `Display/ResetTimeFormatter.cs` formats relative and exact reset times.
+- `Display/*` formats relative/exact reset times and remaining-percent copy.
 - `Security/SecretRedactor.cs` redacts token-shaped values before they reach the UI.
 
 The parser prefers `rateLimitsByLimitId` because it supports multiple buckets. It falls back to the legacy `rateLimits` shape when needed.
@@ -20,9 +20,10 @@ The parser prefers `rateLimitsByLimitId` because it supports multiple buckets. I
 
 - `App.xaml.cs` owns single-instance startup, the tray controller, and the 10-minute refresh timer.
 - `Services/CodexAppServerRateLimitSource.cs` runs a short read-only Codex app-server session.
-- `Services/TrayController.cs` owns the Windows tray icon and context menu.
-- `ViewModels/DashboardViewModel.cs` maps snapshots and errors into UI state.
-- `MainWindow.xaml` renders the dashboard.
+- `Services/TrayController.cs` owns the Windows tray icon, context menu, and Windows notifications.
+- `Services/JsonAlertSettingsService.cs` persists lightweight per-user alert settings.
+- `ViewModels/DashboardViewModel.cs` maps snapshots and errors into UI state, detects alert-worthy changes, and keeps in-app notification history.
+- `MainWindow.xaml` renders the dashboard and the compact notification center.
 
 ## Why WPF
 

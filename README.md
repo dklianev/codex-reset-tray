@@ -8,9 +8,11 @@ It uses the official Codex app-server protocol, asks only for `account/rateLimit
 
 - Tray-first Windows app with a compact WPF dashboard.
 - Shows 5-hour and weekly reset timers, exact local reset time, remaining percent, and reset credit count.
-- Shows live 5-hour and weekly remaining percentages in the tray tooltip and tray context menu.
+- Shows compact live 5-hour and weekly remaining percentages in the tray tooltip, with exact reset times in the tray context menu.
+- Optional low-remaining alerts from the tray menu, with Windows notifications plus an in-app notification center.
+- Detects newly stacked manual reset credits and direct rate-limit resets that happen before the scheduled reset time.
 - Optional per-user "Start with Windows" setting in the tray menu for tray-first startup.
-- Draws a crisp, multi-resolution dynamic tray icon: one bold ring that fills with your 5-hour load and is coloured by state (fresh, watch, near, limited), legible at 16 px on light and dark taskbars.
+- Draws a crisp, multi-resolution dynamic tray icon: outer 5-hour signal plus inner weekly signal, coloured by state (fresh, watch, near, limited), with a compact 16 px rendering for taskbar legibility.
 - Ships a branded multi-resolution application/window icon, generated reproducibly from `packaging/generate-app-icon.ps1`.
 - Uses `codex app-server --listen stdio://` instead of scraping logs or reading auth files.
 - Read-only RPC allowlist: `initialize`, `initialized`, and `account/rateLimits/read`.
@@ -53,8 +55,8 @@ src/
     Display/         reset time formatting
     Security/        defensive redaction helpers
   CodexResetTray.App/
-    Services/        Codex app-server reader and tray integration
-    ViewModels/      UI state mapping and commands
+    Services/        Codex app-server reader, tray integration, settings
+    ViewModels/      UI state, notification detection, and commands
     Resources/       WPF theme tokens and control styles
 tests/
   CodexResetTray.Tests/

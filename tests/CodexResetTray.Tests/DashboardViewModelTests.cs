@@ -1,5 +1,6 @@
 using CodexResetTray.App.Services;
 using CodexResetTray.App.ViewModels;
+using CodexResetTray.Core.Display;
 using CodexResetTray.Core.RateLimits;
 
 namespace CodexResetTray.Tests;
@@ -25,8 +26,8 @@ public sealed class DashboardViewModelTests
         Assert.Equal(11, viewModel.TrayPrimaryPercent);
         Assert.Contains("5h 89% left", viewModel.TrayStatusText);
         Assert.Contains("W 86% left", viewModel.TrayStatusText);
-        Assert.Contains("5-hour: 89% left, resets", viewModel.TrayMenuFiveHourText);
-        Assert.Contains("Weekly: 86% left, resets", viewModel.TrayMenuWeeklyText);
+        Assert.Contains("5-hour: 89% left | resets in", viewModel.TrayMenuFiveHourText);
+        Assert.Contains("Weekly: 86% left | resets in", viewModel.TrayMenuWeeklyText);
         Assert.DoesNotContain("used", viewModel.TrayMenuFiveHourText, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("left left", viewModel.TrayStatusText, StringComparison.OrdinalIgnoreCase);
 
@@ -34,6 +35,27 @@ public sealed class DashboardViewModelTests
         Assert.Equal("89% left", bucket.Primary.RemainingText);
         Assert.Equal(89, bucket.Primary.RemainingPercent);
         Assert.Equal(11, bucket.Primary.UsedPercent);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_builds_compact_tooltip_and_menu_with_exact_reset_times()
+    {
+        var snapshot = CreateSnapshot(primaryUsed: 27, weeklyUsed: 16);
+        using var viewModel = new DashboardViewModel(new StubRateLimitSource(snapshot));
+
+        await viewModel.RefreshAsync();
+
+        Assert.StartsWith("Codex | 5h 73% left >", viewModel.TrayTooltip);
+        Assert.Contains(" | W 84% left >", viewModel.TrayTooltip);
+        Assert.Contains(" | C5", viewModel.TrayTooltip);
+        Assert.True(viewModel.TrayTooltip.Length <= 63, viewModel.TrayTooltip);
+
+        Assert.Contains("73% left", viewModel.TrayMenuFiveHourText);
+        Assert.Contains("resets", viewModel.TrayMenuFiveHourText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(snapshot.Buckets[0].Primary!.ResetsAt, TimeZoneInfo.Local), viewModel.TrayMenuFiveHourText);
+
+        Assert.Contains("84% left", viewModel.TrayMenuWeeklyText);
+        Assert.Contains(ResetTimeFormatter.FormatExact(snapshot.Buckets[0].Secondary!.ResetsAt, TimeZoneInfo.Local), viewModel.TrayMenuWeeklyText);
     }
 
     [Fact]
@@ -51,6 +73,23 @@ public sealed class DashboardViewModelTests
         Assert.True(startup.IsEnabled);
         Assert.True(viewModel.StartWithWindowsEnabled);
         Assert.Equal("Starts with Windows", viewModel.SettingsStatusText);
+    }
+
+    [Fact]
+    public void LowRemainingAlertThreshold_updates_settings_service_and_status_text()
+    {
+        var alerts = new StubAlertSettingsService(thresholdPercent: 15);
+        using var viewModel = new DashboardViewModel(
+            new StubRateLimitSource(CreateSnapshot(0, 0)),
+            alertSettingsService: alerts);
+
+        Assert.Equal(15, viewModel.LowRemainingAlertThresholdPercent);
+        Assert.Equal("Low alerts: 15% left", viewModel.LowRemainingAlertThresholdText);
+
+        viewModel.LowRemainingAlertThresholdPercent = null;
+
+        Assert.Null(alerts.LowRemainingThresholdPercent);
+        Assert.Equal("Low alerts: off", viewModel.LowRemainingAlertThresholdText);
     }
 
     private static RateLimitDashboardSnapshot CreateSnapshot(int primaryUsed, int weeklyUsed)

@@ -37,7 +37,8 @@ public partial class App : System.Windows.Application
 
         var source = new CodexAppServerRateLimitSource();
         var startup = new WindowsStartupService();
-        _dashboard = new DashboardViewModel(source, _shutdown.Token, startup);
+        var alertSettings = new JsonAlertSettingsService();
+        _dashboard = new DashboardViewModel(source, _shutdown.Token, startup, alertSettings);
         _window = new MainWindow(_dashboard);
         MainWindow = _window;
         _dashboard.ExitRequested += OnExitRequested;

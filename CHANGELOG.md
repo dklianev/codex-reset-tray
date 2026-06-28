@@ -15,5 +15,8 @@
 - Unified status colors across the dashboard and tray into one usage-state ramp (emerald -> amber -> orange -> red); blue is reserved for the weekly window.
 - Hardened refresh, docs-link, and exit handling so transient failures surface in the UI instead of crashing the resident app.
 - Reworked the dashboard into a modern frameless Windows 11 app: custom rounded chrome, gradient-mesh backdrop, twin radial usage gauges with state-driven gradient strokes and glow, monospace data readouts, and a staggered load animation.
-- Simplified the system tray icon to a single bold, state-coloured ring that fills with 5-hour usage - instantly legible at 16 px on light and dark taskbars.
+- Reworked the system tray icon into a dual-signal mark: 5-hour outside, weekly inside, with a compact 16 px rendering for taskbar legibility.
 - Refreshed the application/window icon to a matching emerald-to-cyan ring mark.
+- Added configurable low-remaining alerts, manual reset credit notifications, and direct reset detection.
+- Added an in-app notification center with a title-bar bell, unread badge, and compact alert history.
+- Improved tray hover text and tray menu reset details, including exact local reset times.

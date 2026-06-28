@@ -62,6 +62,12 @@ public static class TrayIconFactory
 
     private static void DrawDualRing(Graphics graphics, int size, int? primaryPercent, int? weeklyPercent)
     {
+        if (size <= 20)
+        {
+            DrawCompactDualSignal(graphics, size, primaryPercent, weeklyPercent);
+            return;
+        }
+
         var center = new PointF(size / 2f, size / 2f);
 
         var outerStroke = Math.Max(2.3f, size * 0.13f);
@@ -77,6 +83,40 @@ public static class TrayIconFactory
         if (innerRadius > innerStroke / 2f)
         {
             DrawRing(graphics, center, innerRadius, innerStroke, halo, weeklyPercent); // weekly
+        }
+    }
+
+    private static void DrawCompactDualSignal(Graphics graphics, int size, int? primaryPercent, int? weeklyPercent)
+    {
+        var center = new PointF(size / 2f, size / 2f);
+        var outerStroke = Math.Max(2.8f, size * 0.18f);
+        var halo = Math.Max(1.1f, size * 0.07f);
+        var inset = halo / 2f + Math.Max(0.65f, size * 0.04f);
+        var outerRadius = size / 2f - inset - outerStroke / 2f;
+
+        DrawRing(graphics, center, outerRadius, outerStroke, halo, primaryPercent);
+        DrawWeeklyCenterSignal(graphics, center, size, weeklyPercent);
+    }
+
+    private static void DrawWeeklyCenterSignal(Graphics graphics, PointF center, int size, int? weeklyPercent)
+    {
+        var radius = Math.Max(2.35f, size * 0.18f);
+        var haloRadius = radius + Math.Max(0.8f, size * 0.045f);
+        using (var haloBrush = new SolidBrush(Halo))
+        {
+            graphics.FillEllipse(haloBrush, center.X - haloRadius, center.Y - haloRadius, haloRadius * 2f, haloRadius * 2f);
+        }
+
+        using (var trackBrush = new SolidBrush(Track))
+        {
+            graphics.FillEllipse(trackBrush, center.X - radius, center.Y - radius, radius * 2f, radius * 2f);
+        }
+
+        if (weeklyPercent is { } value)
+        {
+            using var signalBrush = new SolidBrush(RampColor(Math.Clamp(value, 0, 100)));
+            var signalRadius = radius * 0.86f;
+            graphics.FillEllipse(signalBrush, center.X - signalRadius, center.Y - signalRadius, signalRadius * 2f, signalRadius * 2f);
         }
     }
 
@@ -104,7 +144,16 @@ public static class TrayIconFactory
                     StartCap = LineCap.Round,
                     EndCap = LineCap.Round
                 };
-                graphics.DrawArc(progressPen, rect, -90f, sweep); // fill clockwise from 12 o'clock
+                if (sweep >= 359.5f)
+                {
+                    progressPen.StartCap = LineCap.Flat;
+                    progressPen.EndCap = LineCap.Flat;
+                    graphics.DrawEllipse(progressPen, rect);
+                }
+                else
+                {
+                    graphics.DrawArc(progressPen, rect, -90f, sweep); // fill clockwise from 12 o'clock
+                }
             }
         }
     }

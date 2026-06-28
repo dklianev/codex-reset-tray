@@ -17,8 +17,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IRateLimitSource _source;
     private readonly IStartupService? _startupService;
+    private readonly IAlertSettingsService? _alertSettingsService;
     private readonly AsyncRelayCommand _refreshCommand;
+    private readonly AsyncRelayCommand _markNotificationsReadCommand;
+    private readonly AsyncRelayCommand _toggleNotificationsCommand;
     private readonly CancellationToken _shutdownToken;
+    private readonly HashSet<string> _lowAlertActiveKeys = new(StringComparer.OrdinalIgnoreCase);
+    private RateLimitDashboardSnapshot? _previousSnapshot;
     private bool _isBusy;
     private string _statusTitle = "Connecting";
     private string _statusDetail = "Reading Codex rate-limit windows";
@@ -41,6 +46,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _weeklyExactText = string.Empty;
     private string _signalCaption = "No live snapshot yet";
     private string _settingsStatusText = "Startup setting unavailable";
+    private string _lowRemainingAlertThresholdText = "Low alerts: off";
     private int _heroPercent;
     private int _primaryUsedPercent;
     private int _weeklyUsedPercent;
@@ -48,25 +54,35 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private int _weeklyRemainingPercent;
     private int? _trayPrimaryPercent;
     private int? _trayWeeklyPercent;
+    private int? _lowRemainingAlertThresholdPercent;
+    private int _unreadNotificationCount;
     private bool _startWithWindowsEnabled;
     private bool _startupSettingAvailable;
+    private bool _hasUnreadNotifications;
+    private bool _hasNotifications;
+    private bool _isNotificationsOpen;
     private MediaBrush _statusBrush = new MediaSolidColorBrush(MediaColor.FromRgb(107, 117, 128));
 
     public DashboardViewModel(
         IRateLimitSource source,
         CancellationToken shutdownToken = default,
-        IStartupService? startupService = null)
+        IStartupService? startupService = null,
+        IAlertSettingsService? alertSettingsService = null)
     {
         _source = source;
         _startupService = startupService;
+        _alertSettingsService = alertSettingsService;
         _shutdownToken = shutdownToken;
         _refreshCommand = new AsyncRelayCommand(() => RefreshAsync(), () => !IsBusy);
+        _markNotificationsReadCommand = new AsyncRelayCommand(MarkNotificationsReadAsync);
+        _toggleNotificationsCommand = new AsyncRelayCommand(ToggleNotificationsAsync);
         ExitCommand = new AsyncRelayCommand(() =>
         {
             ExitRequested?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         });
         LoadStartupSetting();
+        LoadAlertSettings();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -75,9 +91,17 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     /// (App) force-closes the window and shuts the application down.</summary>
     public event EventHandler? ExitRequested;
 
+    public event EventHandler<TrayNotification>? NotificationRequested;
+
     public ObservableCollection<BucketViewModel> Buckets { get; } = new();
 
+    public ObservableCollection<NotificationViewModel> Notifications { get; } = new();
+
     public ICommand RefreshCommand => _refreshCommand;
+
+    public ICommand MarkNotificationsReadCommand => _markNotificationsReadCommand;
+
+    public ICommand ToggleNotificationsCommand => _toggleNotificationsCommand;
 
     public ICommand ExitCommand { get; }
 
@@ -237,6 +261,51 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _settingsStatusText, value);
     }
 
+    public string LowRemainingAlertThresholdText
+    {
+        get => _lowRemainingAlertThresholdText;
+        private set => SetProperty(ref _lowRemainingAlertThresholdText, value);
+    }
+
+    public int? LowRemainingAlertThresholdPercent
+    {
+        get => _lowRemainingAlertThresholdPercent;
+        set => SetLowRemainingAlertThresholdPercent(value);
+    }
+
+    public int UnreadNotificationCount
+    {
+        get => _unreadNotificationCount;
+        private set
+        {
+            if (SetProperty(ref _unreadNotificationCount, value))
+            {
+                HasUnreadNotifications = value > 0;
+                OnPropertyChanged(nameof(UnreadNotificationCountText));
+            }
+        }
+    }
+
+    public string UnreadNotificationCountText => UnreadNotificationCount > 9 ? "9+" : UnreadNotificationCount.ToString();
+
+    public bool HasUnreadNotifications
+    {
+        get => _hasUnreadNotifications;
+        private set => SetProperty(ref _hasUnreadNotifications, value);
+    }
+
+    public bool HasNotifications
+    {
+        get => _hasNotifications;
+        private set => SetProperty(ref _hasNotifications, value);
+    }
+
+    public bool IsNotificationsOpen
+    {
+        get => _isNotificationsOpen;
+        private set => SetProperty(ref _isNotificationsOpen, value);
+    }
+
     public int PrimaryUsedPercent
     {
         get => _primaryUsedPercent;
@@ -303,6 +372,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
                 cancellationToken);
             var snapshot = await _source.ReadAsync(linkedCancellation.Token);
             ApplySnapshot(snapshot);
+            EvaluateNotifications(snapshot);
+            _previousSnapshot = snapshot;
         }
         catch (OperationCanceledException) when (_shutdownToken.IsCancellationRequested || cancellationToken.IsCancellationRequested)
         {
@@ -427,12 +498,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             return "Codex Reset Tray: no rate-limit data";
         }
 
-        var primaryPercent = FormatPercent(ClampPercent(main.Primary?.UsedPercent));
-        var weeklyPercent = FormatPercent(ClampPercent(main.Secondary?.UsedPercent));
+        var primaryPercent = FormatPercentValue(ClampPercent(main.Primary?.UsedPercent));
+        var weeklyPercent = FormatPercentValue(ClampPercent(main.Secondary?.UsedPercent));
         var primaryReset = FormatResetRelative(main.Primary?.ResetsAt);
         var weeklyReset = FormatResetRelative(main.Secondary?.ResetsAt);
+        var text = $"Codex | 5h {primaryPercent} left >{primaryReset} | W {weeklyPercent} left >{weeklyReset}";
+        var withCredits = credits is { } value ? $"{text} | C{value}" : text;
 
-        return $"Codex: 5h {primaryPercent}, reset {primaryReset}; wk {weeklyPercent}, reset {weeklyReset}";
+        return withCredits.Length <= 63 ? withCredits : text;
     }
 
     private static string BuildTrayStatusText(RateLimitBucket? main, long? credits)
@@ -489,6 +562,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private static string FormatPercent(int? percent) =>
         RateLimitPercentFormatter.FormatOptionalRemainingPercent(percent);
 
+    private static string FormatPercentValue(int? percent) =>
+        RateLimitPercentFormatter.FormatOptionalRemainingPercentValue(percent);
+
     private static string FormatResetRelative(DateTimeOffset? resetAt) =>
         resetAt is { } value ? ResetTimeFormatter.FormatRelative(value, DateTimeOffset.Now) : "unknown";
 
@@ -511,8 +587,282 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private static string BuildTrayMenuWindowText(string label, RateLimitWindowInfo? window)
     {
         var percent = FormatPercent(ClampPercent(window?.UsedPercent));
-        var reset = FormatResetRelative(window?.ResetsAt);
-        return $"{label}: {percent}, resets {reset}";
+        if (window?.ResetsAt is not { } resetsAt)
+        {
+            return $"{label}: {percent} | reset unknown";
+        }
+
+        var relative = FormatResetRelative(resetsAt);
+        var exact = FormatResetExact(resetsAt);
+        var reset = relative == "ready" ? "reset ready" : $"resets in {relative}";
+        return $"{label}: {percent} | {reset} ({exact} local)";
+    }
+
+    private void LoadAlertSettings()
+    {
+        try
+        {
+            _lowRemainingAlertThresholdPercent = _alertSettingsService?.LowRemainingThresholdPercent;
+            LowRemainingAlertThresholdText = FormatLowRemainingAlertThresholdText(_lowRemainingAlertThresholdPercent);
+        }
+        catch (Exception ex)
+        {
+            _lowRemainingAlertThresholdPercent = null;
+            LowRemainingAlertThresholdText = "Low alerts: unavailable";
+            ErrorText = SecretRedactor.Redact($"Could not read alert settings: {ex.Message}");
+        }
+    }
+
+    private void SetLowRemainingAlertThresholdPercent(int? value)
+    {
+        var normalized = value is { } percent ? Math.Clamp(percent, 1, 99) : (int?)null;
+        if (normalized == _lowRemainingAlertThresholdPercent)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_alertSettingsService is not null)
+            {
+                _alertSettingsService.LowRemainingThresholdPercent = normalized;
+            }
+
+            SetProperty(ref _lowRemainingAlertThresholdPercent, normalized, nameof(LowRemainingAlertThresholdPercent));
+            LowRemainingAlertThresholdText = FormatLowRemainingAlertThresholdText(normalized);
+            ReseedLowAlertState(_previousSnapshot);
+        }
+        catch (Exception ex)
+        {
+            ErrorText = SecretRedactor.Redact($"Could not update alert settings: {ex.Message}");
+            OnPropertyChanged(nameof(LowRemainingAlertThresholdPercent));
+        }
+    }
+
+    private static string FormatLowRemainingAlertThresholdText(int? threshold) =>
+        threshold is { } value ? $"Low alerts: {value}% left" : "Low alerts: off";
+
+    private Task MarkNotificationsReadAsync()
+    {
+        MarkNotificationsRead();
+        return Task.CompletedTask;
+    }
+
+    private Task ToggleNotificationsAsync()
+    {
+        IsNotificationsOpen = !IsNotificationsOpen;
+        if (IsNotificationsOpen)
+        {
+            MarkNotificationsRead();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void MarkNotificationsRead()
+    {
+        foreach (var notification in Notifications)
+        {
+            notification.MarkRead();
+        }
+
+        UnreadNotificationCount = 0;
+    }
+
+    private void EvaluateNotifications(RateLimitDashboardSnapshot current)
+    {
+        var previous = _previousSnapshot;
+        if (previous is null)
+        {
+            ReseedLowAlertState(current);
+            return;
+        }
+
+        var lowMessages = EvaluateLowRemainingAlerts(previous, current);
+        var infoMessages = EvaluateResetAlerts(previous, current);
+
+        TrayNotification? notification = null;
+        if (lowMessages.Count > 0)
+        {
+            notification = new TrayNotification(
+                TrayNotificationLevel.Warning,
+                "Low Codex capacity",
+                string.Join("; ", lowMessages),
+                current.FetchedAt);
+        }
+        else if (infoMessages.Count == 1)
+        {
+            notification = infoMessages[0];
+        }
+        else if (infoMessages.Count > 1)
+        {
+            notification = new TrayNotification(
+                TrayNotificationLevel.Info,
+                "Codex reset update",
+                string.Join("; ", infoMessages.Select(message => message.Text)),
+                current.FetchedAt);
+        }
+
+        if (notification is not null)
+        {
+            AddNotification(notification);
+        }
+    }
+
+    private List<string> EvaluateLowRemainingAlerts(
+        RateLimitDashboardSnapshot previous,
+        RateLimitDashboardSnapshot current)
+    {
+        var threshold = LowRemainingAlertThresholdPercent;
+        if (threshold is null)
+        {
+            _lowAlertActiveKeys.Clear();
+            return new List<string>();
+        }
+
+        var previousWindows = FlattenWindows(previous).ToDictionary(window => window.Key, StringComparer.OrdinalIgnoreCase);
+        var messages = new List<string>();
+        foreach (var currentWindow in FlattenWindows(current))
+        {
+            var remaining = RateLimitPercentFormatter.RemainingPercent(currentWindow.Window.UsedPercent);
+            if (remaining > threshold.Value)
+            {
+                _lowAlertActiveKeys.Remove(currentWindow.Key);
+                continue;
+            }
+
+            var previousRemaining = previousWindows.TryGetValue(currentWindow.Key, out var previousWindow)
+                ? RateLimitPercentFormatter.RemainingPercent(previousWindow.Window.UsedPercent)
+                : (int?)null;
+            var crossesThreshold = previousRemaining is { } value && value > threshold.Value;
+            if (crossesThreshold && _lowAlertActiveKeys.Add(currentWindow.Key))
+            {
+                messages.Add($"{currentWindow.Label} {remaining}% left");
+            }
+            else
+            {
+                _lowAlertActiveKeys.Add(currentWindow.Key);
+            }
+        }
+
+        return messages;
+    }
+
+    private List<TrayNotification> EvaluateResetAlerts(
+        RateLimitDashboardSnapshot previous,
+        RateLimitDashboardSnapshot current)
+    {
+        var messages = new List<TrayNotification>();
+        if (previous.ResetCreditsAvailable is { } oldCredits
+            && current.ResetCreditsAvailable is { } newCredits
+            && newCredits > oldCredits)
+        {
+            messages.Add(new TrayNotification(
+                TrayNotificationLevel.Info,
+                "Manual reset credits added",
+                $"+{newCredits - oldCredits} reset credits ({newCredits} total)",
+                current.FetchedAt));
+        }
+
+        var creditsIncreased = previous.ResetCreditsAvailable is { } previousCredits
+            && current.ResetCreditsAvailable is { } currentCredits
+            && currentCredits > previousCredits;
+        if (creditsIncreased)
+        {
+            return messages;
+        }
+
+        var currentWindows = FlattenWindows(current).ToDictionary(window => window.Key, StringComparer.OrdinalIgnoreCase);
+        var resetLabels = new List<string>();
+        foreach (var previousWindow in FlattenWindows(previous))
+        {
+            if (!currentWindows.TryGetValue(previousWindow.Key, out var currentWindow)
+                || !IsDirectReset(previousWindow.Window, currentWindow.Window, current.FetchedAt))
+            {
+                continue;
+            }
+
+            var remaining = RateLimitPercentFormatter.FormatRemainingPercent(currentWindow.Window.UsedPercent);
+            resetLabels.Add($"{currentWindow.Label} {remaining}");
+            _lowAlertActiveKeys.Remove(currentWindow.Key);
+        }
+
+        if (resetLabels.Count > 0)
+        {
+            messages.Add(new TrayNotification(
+                TrayNotificationLevel.Info,
+                "Codex limits reset",
+                string.Join("; ", resetLabels),
+                current.FetchedAt));
+        }
+
+        return messages;
+    }
+
+    private static bool IsDirectReset(
+        RateLimitWindowInfo previous,
+        RateLimitWindowInfo current,
+        DateTimeOffset currentFetchedAt)
+    {
+        if (previous.ResetsAt is not { } previousReset
+            || current.ResetsAt is not { } currentReset
+            || currentFetchedAt >= previousReset.AddMinutes(-2)
+            || currentReset <= previousReset.AddMinutes(2))
+        {
+            return false;
+        }
+
+        var previousUsed = Math.Clamp(previous.UsedPercent, 0, 100);
+        var currentUsed = Math.Clamp(current.UsedPercent, 0, 100);
+        return previousUsed - currentUsed >= 50 || (previousUsed >= 90 && currentUsed <= 10);
+    }
+
+    private void ReseedLowAlertState(RateLimitDashboardSnapshot? snapshot)
+    {
+        _lowAlertActiveKeys.Clear();
+        if (snapshot is null || LowRemainingAlertThresholdPercent is not { } threshold)
+        {
+            return;
+        }
+
+        foreach (var currentWindow in FlattenWindows(snapshot))
+        {
+            var remaining = RateLimitPercentFormatter.RemainingPercent(currentWindow.Window.UsedPercent);
+            if (remaining <= threshold)
+            {
+                _lowAlertActiveKeys.Add(currentWindow.Key);
+            }
+        }
+    }
+
+    private void AddNotification(TrayNotification notification)
+    {
+        Notifications.Insert(0, new NotificationViewModel(notification, isUnread: true));
+        while (Notifications.Count > 25)
+        {
+            Notifications.RemoveAt(Notifications.Count - 1);
+        }
+
+        HasNotifications = Notifications.Count > 0;
+        UnreadNotificationCount++;
+        NotificationRequested?.Invoke(this, notification);
+    }
+
+    private static IEnumerable<(string Key, string Label, RateLimitWindowInfo Window)> FlattenWindows(RateLimitDashboardSnapshot snapshot)
+    {
+        foreach (var bucket in snapshot.Buckets)
+        {
+            foreach (var window in new[] { bucket.Primary, bucket.Secondary })
+            {
+                if (window is null)
+                {
+                    continue;
+                }
+
+                var key = $"{bucket.LimitId}:{window.Kind}:{window.WindowDurationMinutes}";
+                yield return (key, $"{bucket.DisplayName} {window.Label}", window);
+            }
+        }
     }
 
     private void LoadStartupSetting()

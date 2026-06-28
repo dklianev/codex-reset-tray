@@ -92,6 +92,43 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:NotificationViewModel}">
+            <Border Style="{StaticResource NotificationRowStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse Width="7" Height="7" Fill="{Binding AccentBrush}" Margin="0,5,0,0" VerticalAlignment="Top" />
+                    <StackPanel Grid.Column="2">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource TitleText}" FontSize="12" />
+                            <Ellipse Grid.Column="1" Width="6" Height="6" Fill="{Binding AccentBrush}" Margin="8,3,0,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="{x:Type Ellipse}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnread}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                        </Grid>
+                        <TextBlock Text="{Binding Text}" Style="{StaticResource CaptionText}" Foreground="{StaticResource MutedInkBrush}"
+                                   TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding TimestampText}" Style="{StaticResource MonoCaption}" Margin="0,7,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
     </Window.Resources>
 
     <!-- Outer margin leaves room for the floating window shadow. -->
@@ -141,6 +178,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Image Source="pack://application:,,,/Assets/app.ico" Width="22" Height="22"
                            VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -155,7 +193,22 @@
                         <TextBlock Text="{Binding StatusTitle}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
                                    Foreground="{StaticResource MutedInkBrush}" TextWrapping="NoWrap" />
                     </StackPanel>
-                    <Button Grid.Column="3" x:Name="CloseButton" Style="{StaticResource ChromeCloseButton}"
+                    <Button Grid.Column="3" Command="{Binding ToggleNotificationsCommand}" Style="{StaticResource ChromeIconButton}"
+                            VerticalAlignment="Center" ToolTip="Notifications">
+                        <Grid Width="20" Height="20">
+                            <Path Width="15" Height="15" Stretch="Uniform"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                  StrokeThickness="1.45" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Fill="Transparent"
+                                  Data="M9,2.5 C6.6,2.5 5.2,4.2 5.2,6.7 L5.2,10.8 L3.6,13.8 L14.4,13.8 L12.8,10.8 L12.8,6.7 C12.8,4.2 11.4,2.5 9,2.5 Z M7.3,15 C7.9,16.1 10.1,16.1 10.7,15" />
+                            <Border Style="{StaticResource UnreadBadgeStyle}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Margin="0,-5,-7,0">
+                                <TextBlock Text="{Binding UnreadNotificationCountText}" FontSize="9" FontWeight="Bold"
+                                           Foreground="#07110F" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Button>
+                    <Button Grid.Column="4" x:Name="CloseButton" Style="{StaticResource ChromeCloseButton}"
                             VerticalAlignment="Center" Click="CloseButton_Click" />
                 </Grid>
 
@@ -273,6 +326,61 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <Border Panel.ZIndex="20" Style="{StaticResource NotificationPanelStyle}"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="320" MaxHeight="420" Margin="0,58,26,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Notifications" Style="{StaticResource TitleText}" />
+                            <TextBlock Text="{Binding LowRemainingAlertThresholdText}" Style="{StaticResource MonoCaption}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Command="{Binding MarkNotificationsReadCommand}" Style="{StaticResource ChromeIconButton}"
+                                ToolTip="Mark read">
+                            <Path Width="14" Height="14" Stretch="Uniform"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                  StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M1.5,7.5 L5.8,11.8 L13,2.8" />
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="{StaticResource PillBrush}" BorderBrush="{StaticResource HairlineBrush}"
+                            BorderThickness="1" CornerRadius="12" Padding="14" Margin="0,0,0,8">
+                        <Border.Style>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasNotifications}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="Quiet right now" Style="{StaticResource TitleText}" FontSize="12" />
+                            <TextBlock Text="Low-capacity and reset events will land here."
+                                       Style="{StaticResource CaptionText}" Foreground="{StaticResource MutedInkBrush}"
+                                       TextWrapping="Wrap" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" MaxHeight="330">
+                        <ItemsControl ItemsSource="{Binding Notifications}" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>

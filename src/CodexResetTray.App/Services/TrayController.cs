@@ -14,6 +14,8 @@ public sealed class TrayController : IDisposable
     private Forms.ToolStripMenuItem? _fiveHourItem;
     private Forms.ToolStripMenuItem? _weeklyItem;
     private Forms.ToolStripMenuItem? _creditsItem;
+    private Forms.ToolStripMenuItem? _alertsItem;
+    private readonly List<(int? Threshold, Forms.ToolStripMenuItem Item)> _alertThresholdItems = new();
     private System.Drawing.Icon? _currentIcon;
     private bool _updateQueued;
 
@@ -22,6 +24,7 @@ public sealed class TrayController : IDisposable
         _window = window;
         _dashboard = dashboard;
         _dashboard.PropertyChanged += OnDashboardPropertyChanged;
+        _dashboard.NotificationRequested += OnNotificationRequested;
     }
 
     public void Initialize()
@@ -33,6 +36,7 @@ public sealed class TrayController : IDisposable
             _dashboard.StartWithWindowsEnabled = !_dashboard.StartWithWindowsEnabled;
             UpdateTooltip();
         });
+        _alertsItem = BuildAlertsMenu();
         var exitItem = new Forms.ToolStripMenuItem("Exit", null, (_, _) =>
         {
             _window.ForceClose();
@@ -67,6 +71,7 @@ public sealed class TrayController : IDisposable
         _notifyIcon.ContextMenuStrip.Items.Add(openItem);
         _notifyIcon.ContextMenuStrip.Items.Add(refreshItem);
         _notifyIcon.ContextMenuStrip.Items.Add(_startWithWindowsItem);
+        _notifyIcon.ContextMenuStrip.Items.Add(_alertsItem);
         _notifyIcon.ContextMenuStrip.Items.Add(new Forms.ToolStripSeparator());
         _notifyIcon.ContextMenuStrip.Items.Add(exitItem);
         _notifyIcon.DoubleClick += (_, _) => _window.ShowDashboard();
@@ -84,7 +89,9 @@ public sealed class TrayController : IDisposable
             or nameof(DashboardViewModel.TrayPrimaryPercent)
             or nameof(DashboardViewModel.TrayWeeklyPercent)
             or nameof(DashboardViewModel.StartWithWindowsEnabled)
-            or nameof(DashboardViewModel.StartupSettingAvailable)))
+            or nameof(DashboardViewModel.StartupSettingAvailable)
+            or nameof(DashboardViewModel.LowRemainingAlertThresholdPercent)
+            or nameof(DashboardViewModel.LowRemainingAlertThresholdText)))
         {
             return;
         }
@@ -140,10 +147,57 @@ public sealed class TrayController : IDisposable
             _startWithWindowsItem.Enabled = _dashboard.StartupSettingAvailable;
         }
 
+        if (_alertsItem is not null)
+        {
+            _alertsItem.Text = _dashboard.LowRemainingAlertThresholdText;
+            foreach (var (threshold, item) in _alertThresholdItems)
+            {
+                item.Checked = threshold == _dashboard.LowRemainingAlertThresholdPercent;
+            }
+        }
+
         var previousIcon = _currentIcon;
         _currentIcon = TrayIconFactory.Create(_dashboard.TrayPrimaryPercent, _dashboard.TrayWeeklyPercent);
         _notifyIcon.Icon = _currentIcon;
         previousIcon?.Dispose();
+    }
+
+    private Forms.ToolStripMenuItem BuildAlertsMenu()
+    {
+        _alertThresholdItems.Clear();
+        var alertsItem = new Forms.ToolStripMenuItem(_dashboard.LowRemainingAlertThresholdText);
+        AddThresholdItem(alertsItem, null, "Off");
+        alertsItem.DropDownItems.Add(new Forms.ToolStripSeparator());
+        foreach (var threshold in new[] { 5, 10, 15, 20, 25 })
+        {
+            AddThresholdItem(alertsItem, threshold, $"{threshold}% left");
+        }
+
+        return alertsItem;
+    }
+
+    private void AddThresholdItem(Forms.ToolStripMenuItem parent, int? threshold, string label)
+    {
+        var item = new Forms.ToolStripMenuItem(label, null, (_, _) =>
+        {
+            _dashboard.LowRemainingAlertThresholdPercent = threshold;
+            UpdateTooltip();
+        });
+        _alertThresholdItems.Add((threshold, item));
+        parent.DropDownItems.Add(item);
+    }
+
+    private void OnNotificationRequested(object? sender, TrayNotification notification)
+    {
+        if (_notifyIcon is null)
+        {
+            return;
+        }
+
+        var icon = notification.Level == TrayNotificationLevel.Warning
+            ? Forms.ToolTipIcon.Warning
+            : Forms.ToolTipIcon.Info;
+        _notifyIcon.ShowBalloonTip(8000, notification.Title, notification.Text, icon);
     }
 
     public void Dispose()
@@ -154,6 +208,7 @@ public sealed class TrayController : IDisposable
         }
 
         _dashboard.PropertyChanged -= OnDashboardPropertyChanged;
+        _dashboard.NotificationRequested -= OnNotificationRequested;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _notifyIcon = null;
