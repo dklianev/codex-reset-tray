@@ -11,7 +11,9 @@
         Icon="pack://application:,,,/Assets/app.ico"
         Width="500"
         Height="800"
-        ResizeMode="NoResize"
+        MinWidth="440"
+        MinHeight="640"
+        ResizeMode="CanResize"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -97,11 +99,8 @@
             BorderBrush="{StaticResource CardStrokeBrush}" BorderThickness="1"
             Effect="{StaticResource WindowShadowEffect}">
         <Grid>
-            <!-- Gradient-mesh atmosphere, clipped to the rounded shell. -->
-            <Grid>
-                <Grid.Clip>
-                    <RectangleGeometry Rect="0,0,462,762" RadiusX="18" RadiusY="18" />
-                </Grid.Clip>
+            <!-- Gradient-mesh atmosphere; clip tracks window size in code-behind. -->
+            <Grid x:Name="MeshLayer">
                 <Ellipse Width="540" Height="540" HorizontalAlignment="Left" VerticalAlignment="Top"
                          Margin="-200,-220,0,0" Fill="{StaticResource EmeraldGlowBrush}" IsHitTestVisible="False" />
                 <Ellipse Width="600" Height="600" HorizontalAlignment="Right" VerticalAlignment="Bottom"
@@ -265,15 +264,12 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="8" />
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="10" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Read-only • no auth.json" Style="{StaticResource MonoCaption}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Docs" Command="{Binding OpenCodexDocsCommand}" Style="{StaticResource SecondaryButton}" />
-                        <Button Grid.Column="3" Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" />
-                        <Button Grid.Column="5" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
+                        <Button Grid.Column="1" Content="Exit" Command="{Binding ExitCommand}" Style="{StaticResource SecondaryButton}" />
+                        <Button Grid.Column="3" Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" />
                     </Grid>
                 </Border>
             </Grid>
