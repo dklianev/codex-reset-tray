@@ -23,3 +23,4 @@
 - Improved tray hover text and tray menu reset details, including exact local reset times.
 - Added experimental opt-in reset-credit expiry metadata with tray/dashboard status, an all-credit expiry timeline, expiry warnings, and strict fallback to official app-server counts.
 - Added smart auto-refresh cadence: 5 minutes normally, 1 minute near reset, and 30 seconds when a reset is imminent.
+- Polished public README, privacy notes, repository ignore rules, and release hygiene for the first open-source push.

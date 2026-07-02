@@ -39,7 +39,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private string _trayMenuCreditExpiryText = "Reset expiry: lookup off";
     private string _resetCreditExpiryLookupText = "Expiry lookup: off";
     private string _resetCreditExpiryText = "Credit expiry: lookup off";
-    private string _resetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
+    private string _resetCreditExpiryDetailText = "Opt-in metadata reads local Codex auth credentials and calls an unofficial ChatGPT endpoint.";
     private string _resetCreditExpirySummaryText = "No expiry timeline yet";
     private string _autoRefreshText = "Smart refresh: 5m";
     private string _mainLimitName = "Codex";
@@ -528,7 +528,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             ClearResetCreditExpiryRows();
             ResetCreditExpiryText = "Credit expiry: lookup off";
             ResetCreditExpirySummaryText = "Expiry timeline disabled";
-            ResetCreditExpiryDetailText = "Enable experimental lookup to track when reset credits expire.";
+            ResetCreditExpiryDetailText = "Opt-in metadata reads local Codex auth credentials and calls an unofficial ChatGPT endpoint.";
             TrayMenuCreditExpiryText = "Reset expiry: lookup off";
             return;
         }
@@ -683,7 +683,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             : "Expiry timeline disabled";
         ResetCreditExpiryDetailText = ResetCreditExpiryLookupEnabled
             ? "Refresh failed before expiry metadata could be checked."
-            : "Enable experimental lookup to track when reset credits expire.";
+            : "Opt-in metadata reads local Codex auth credentials and calls an unofficial ChatGPT endpoint.";
         TrayTooltip = "Codex Reset Tray: refresh failed";
         TrayStatusText = "5h -- | W -- | refresh failed";
         TrayMenuFiveHourText = "5-hour: unavailable";

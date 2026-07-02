@@ -47,7 +47,7 @@ Codex app-server currently provides the reset credit count, but not per-credit e
 GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits
 ```
 
-This is disabled by default. When enabled, the app reads only these fields from the local Codex auth file:
+This is disabled by default. When enabled, the app reads only these fields from `%CODEX_HOME%\auth.json` when `CODEX_HOME` is set, otherwise from `%USERPROFILE%\.codex\auth.json`:
 
 - `tokens.access_token`
 - `tokens.account_id`

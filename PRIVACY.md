@@ -7,11 +7,11 @@ Codex Reset Tray is designed to show rate-limit reset times with the smallest pr
 - It starts `codex app-server --listen stdio://`.
 - It sends `initialize`, `initialized`, and `account/rateLimits/read`.
 - It reads the returned rate-limit buckets and reset credit count.
-- If the experimental reset-credit expiry lookup is enabled, it reads `tokens.access_token` and `tokens.account_id` from the local Codex auth file for one HTTPS metadata request to ChatGPT, then displays only per-credit expiry dates/status text.
+- If the experimental reset-credit expiry lookup is enabled, it reads `tokens.access_token` and `tokens.account_id` from `%CODEX_HOME%\auth.json` when `CODEX_HOME` is set, otherwise from `%USERPROFILE%\.codex\auth.json`, for one HTTPS metadata request to ChatGPT. It then displays only per-credit expiry dates/status text.
 
 ## What It Does Not Read
 
-- It does not open `.codex/auth.json` unless the experimental reset-credit expiry lookup is enabled.
+- It does not open `auth.json` unless the experimental reset-credit expiry lookup is enabled.
 - It does not read Codex session logs.
 - It does not collect prompts, outputs, repository contents, or file paths beyond sanitized error messages.
 - It does not send telemetry to this project or to any third-party service.
