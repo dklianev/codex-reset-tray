@@ -1,5 +1,11 @@
 # Codex Reset Tray
 
+[![CI](https://github.com/dklianev/codex-reset-tray/actions/workflows/ci.yml/badge.svg)](https://github.com/dklianev/codex-reset-tray/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/dklianev/codex-reset-tray?label=release)](https://github.com/dklianev/codex-reset-tray/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea043.svg)](LICENSE)
+[![Windows](https://img.shields.io/badge/windows-10%20%2F%2011-0078d4.svg)](README.md)
+[![.NET](https://img.shields.io/badge/.NET-10-512bd4.svg)](https://dotnet.microsoft.com/)
+
 Codex Reset Tray is a lightweight Windows tray app for watching Codex rate-limit windows without keeping a browser open.
 
 It shows the 5-hour and weekly limits, reset credit count, exact local reset times, smart refresh status, and optional per-credit expiry metadata in a native tray-first UI.
@@ -54,7 +60,7 @@ More detail: [docs/rate-limit-source.md](docs/rate-limit-source.md)
 
 ## Install
 
-Download the latest `CodexResetTray-win-x64.zip` from a GitHub release, extract it, and run:
+Download the latest `CodexResetTray-win-x64.zip` from [GitHub Releases](https://github.com/dklianev/codex-reset-tray/releases/latest), extract it, and run:
 
 ```text
 CodexResetTray.exe
@@ -69,6 +75,12 @@ Requirements for the portable app:
 The release build is self-contained, so users do not need to install the .NET runtime separately.
 
 Note: until the app is code-signed, Windows SmartScreen may warn on first launch. That is expected for unsigned open-source binaries.
+
+To verify a downloaded release zip, compare the release note checksum with:
+
+```powershell
+Get-FileHash .\CodexResetTray-win-x64.zip -Algorithm SHA256
+```
 
 ## Usage
 
@@ -111,6 +123,12 @@ HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 ```
 
 It stores the current executable path with `--minimized` and does not require administrator rights. If you move the portable app folder, toggle Start with Windows off and on again so the saved path is refreshed.
+
+## Update And Uninstall
+
+To update, exit the tray app, download the newest release zip, and replace the extracted app folder. Settings stay in `%APPDATA%\CodexResetTray\settings.json`.
+
+To uninstall, exit the app, turn off Start with Windows if enabled, delete the extracted app folder, and optionally delete `%APPDATA%\CodexResetTray`.
 
 ## Development
 

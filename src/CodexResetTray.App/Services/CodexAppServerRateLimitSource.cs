@@ -1,4 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 using System.Text.Json;
 using CodexResetTray.Core.Protocol;
 using CodexResetTray.Core.RateLimits;
@@ -105,18 +108,16 @@ public sealed class CodexAppServerRateLimitSource : IRateLimitSource, IDisposabl
 
     private static Process StartProcess()
     {
-        var startInfo = new ProcessStartInfo
+        ProcessStartInfo startInfo;
+
+        try
         {
-            FileName = "cmd.exe",
-            Arguments = "/d /c codex app-server --listen stdio://",
-            UseShellExecute = false,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            StandardOutputEncoding = System.Text.Encoding.UTF8,
-            StandardErrorEncoding = System.Text.Encoding.UTF8
-        };
+            startInfo = CreateStartInfo(ResolveCodexCommandPath());
+        }
+        catch (Win32Exception ex)
+        {
+            throw new InvalidOperationException("Codex CLI was not found on PATH. Install or update Codex, then refresh.", ex);
+        }
 
         var process = new Process
         {
@@ -137,6 +138,135 @@ public sealed class CodexAppServerRateLimitSource : IRateLimitSource, IDisposabl
         }
 
         return process;
+    }
+
+    internal static string ResolveCodexCommandPath()
+    {
+        var resolvedPath = ResolveCodexCommandPath(
+            Environment.GetEnvironmentVariable("PATH") ?? string.Empty,
+            Environment.GetEnvironmentVariable("PATHEXT") ?? string.Empty);
+
+        return resolvedPath ?? throw new Win32Exception(2, "Codex CLI was not found on PATH.");
+    }
+
+    internal static string? ResolveCodexCommandPath(string pathValue, string pathExtValue)
+    {
+        foreach (var directory in GetTrustedPathDirectories(pathValue))
+        {
+            foreach (var extension in GetCommandExtensions(pathExtValue))
+            {
+                var candidate = Path.Combine(directory, $"codex{extension}");
+                if (File.Exists(candidate))
+                {
+                    return Path.GetFullPath(candidate);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    internal static ProcessStartInfo CreateStartInfo(string codexCommandPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(codexCommandPath);
+
+        if (codexCommandPath.Contains('"', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Resolved Codex CLI path contains an invalid quote character.");
+        }
+
+        var extension = Path.GetExtension(codexCommandPath);
+        var startInfo = IsCommandShim(extension)
+            ? new ProcessStartInfo
+            {
+                FileName = GetCommandProcessorPath(),
+                Arguments = $"/d /s /c \"\"{codexCommandPath}\" \"app-server\" \"--listen\" \"stdio://\"\""
+            }
+            : new ProcessStartInfo
+            {
+                FileName = codexCommandPath
+            };
+
+        if (string.IsNullOrWhiteSpace(startInfo.Arguments))
+        {
+            startInfo.ArgumentList.Add("app-server");
+            startInfo.ArgumentList.Add("--listen");
+            startInfo.ArgumentList.Add("stdio://");
+        }
+
+        startInfo.WorkingDirectory = AppContext.BaseDirectory;
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardInput = true;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+        startInfo.StandardOutputEncoding = Encoding.UTF8;
+        startInfo.StandardErrorEncoding = Encoding.UTF8;
+
+        return startInfo;
+    }
+
+    private static IEnumerable<string> GetTrustedPathDirectories(string pathValue)
+    {
+        foreach (var rawEntry in pathValue.Split(new[] { Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var entry = Environment.ExpandEnvironmentVariables(rawEntry.Trim('"'));
+            if (string.IsNullOrWhiteSpace(entry) || !Path.IsPathFullyQualified(entry))
+            {
+                continue;
+            }
+
+            yield return entry;
+        }
+    }
+
+    private static IEnumerable<string> GetCommandExtensions(string pathExtValue)
+    {
+        var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var allowedExtensions = new HashSet<string>(new[] { ".com", ".exe", ".bat", ".cmd" }, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var extension in pathExtValue.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var normalized = extension.StartsWith(".", StringComparison.Ordinal)
+                ? extension
+                : $".{extension}";
+            normalized = normalized.ToLowerInvariant();
+
+            if (allowedExtensions.Contains(normalized) && emitted.Add(normalized))
+            {
+                yield return normalized;
+            }
+        }
+
+        foreach (var fallback in new[] { ".com", ".exe", ".bat", ".cmd" })
+        {
+            if (emitted.Add(fallback))
+            {
+                yield return fallback;
+            }
+        }
+    }
+
+    private static bool IsCommandShim(string extension) =>
+        string.Equals(extension, ".cmd", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(extension, ".bat", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetCommandProcessorPath()
+    {
+        var systemCmdPath = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        if (Path.IsPathFullyQualified(systemCmdPath))
+        {
+            return systemCmdPath;
+        }
+
+        var comspec = Environment.GetEnvironmentVariable("COMSPEC");
+        if (!string.IsNullOrWhiteSpace(comspec) && Path.IsPathFullyQualified(comspec))
+        {
+            return comspec!;
+        }
+
+        return "cmd.exe";
     }
 
     private static RateLimitDashboardSnapshot? TryParseRateLimitResponse(string line)

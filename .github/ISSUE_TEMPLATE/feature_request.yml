@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an improvement that fits the tray app's read-only design.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Use case
+      description: What are you trying to understand or do faster?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest useful version of the change.
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy and read-only impact
+      description: Does this require a new Codex RPC method, authenticated endpoint, stored data, or notification?
+      placeholder: "No new authenticated data source; display-only UI change."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

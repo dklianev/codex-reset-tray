@@ -6,7 +6,7 @@ This project is pre-1.0. Security fixes target the latest `main` branch until re
 
 ## Reporting A Vulnerability
 
-Use GitHub private vulnerability reporting if it is enabled for the repository. Do not post secrets, tokens, screenshots of `auth.json`, full Codex logs, or exploit details in a public issue.
+Use GitHub private vulnerability reporting for security issues whenever it is available on the repository. Maintainers should keep it enabled before accepting sensitive reports. Do not post secrets, tokens, screenshots of `auth.json`, full Codex logs, or exploit details in a public issue.
 
 If private reporting is not enabled yet, open a public issue that only asks maintainers to enable private vulnerability reporting or provide a private contact path. Keep reproductions and sensitive details private until a private channel is available.
 

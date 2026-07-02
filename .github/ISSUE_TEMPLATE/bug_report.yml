@@ -1,0 +1,81 @@
+name: Bug report
+description: Report a reproducible problem in Codex Reset Tray.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach `auth.json`, tokens, account IDs, full Codex logs, or screenshots that contain secrets.
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Example: v0.1.0 or the commit SHA from a local build.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: input
+    id: codex-version
+    attributes:
+      label: Codex CLI version
+      description: Run `codex --version` in a new terminal.
+      placeholder: codex 0.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      options:
+        - GitHub release zip
+        - Local source build
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: expiry-enabled
+    attributes:
+      label: Is reset-credit expiry lookup enabled?
+      options:
+        - "No"
+        - "Yes"
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the app
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: redacted-logs
+    attributes:
+      label: Redacted logs or screenshots
+      description: Attach only redacted output. Remove tokens, account IDs, user paths, and repository names if sensitive.
+    validations:
+      required: false
