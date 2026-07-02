@@ -24,6 +24,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
     private readonly CancellationToken _shutdownToken;
     private readonly HashSet<string> _lowAlertActiveKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _resetCreditExpiryAlertActiveKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _knownResetCreditKeys = new(StringComparer.OrdinalIgnoreCase);
     private RateLimitDashboardSnapshot? _previousSnapshot;
     private bool _isBusy;
     private string _statusTitle = "Connecting";
@@ -923,6 +924,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         {
             ReseedLowAlertState(current);
             ReseedResetCreditExpiryAlertState(current);
+            ReseedKnownResetCreditState(current);
             return;
         }
 
@@ -930,45 +932,46 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         var expiryMessages = EvaluateResetCreditExpiryAlerts(current);
         var infoMessages = EvaluateResetAlerts(previous, current);
 
-        TrayNotification? notification = null;
+        var notifications = new List<TrayNotification>();
         if (lowMessages.Count > 0 && expiryMessages.Count > 0)
         {
-            notification = new TrayNotification(
+            notifications.Add(new TrayNotification(
                 TrayNotificationLevel.Warning,
                 "Codex attention needed",
                 string.Join("; ", lowMessages.Concat(expiryMessages)),
-                current.FetchedAt);
+                current.FetchedAt));
         }
         else if (lowMessages.Count > 0)
         {
-            notification = new TrayNotification(
+            notifications.Add(new TrayNotification(
                 TrayNotificationLevel.Warning,
                 "Low Codex capacity",
                 string.Join("; ", lowMessages),
-                current.FetchedAt);
+                current.FetchedAt));
         }
         else if (expiryMessages.Count > 0)
         {
-            notification = new TrayNotification(
+            notifications.Add(new TrayNotification(
                 TrayNotificationLevel.Warning,
                 "Reset credit expiring soon",
                 string.Join("; ", expiryMessages),
-                current.FetchedAt);
+                current.FetchedAt));
         }
-        else if (infoMessages.Count == 1)
+
+        if (infoMessages.Count == 1)
         {
-            notification = infoMessages[0];
+            notifications.Add(infoMessages[0]);
         }
         else if (infoMessages.Count > 1)
         {
-            notification = new TrayNotification(
+            notifications.Add(new TrayNotification(
                 TrayNotificationLevel.Info,
                 "Codex reset update",
                 string.Join("; ", infoMessages.Select(message => message.Text)),
-                current.FetchedAt);
+                current.FetchedAt));
         }
 
-        if (notification is not null)
+        foreach (var notification in notifications)
         {
             AddNotification(notification);
         }
@@ -1058,25 +1061,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         RateLimitDashboardSnapshot current)
     {
         var messages = new List<TrayNotification>();
-        if (previous.ResetCreditsAvailable is { } oldCredits
-            && current.ResetCreditsAvailable is { } newCredits
-            && newCredits > oldCredits)
-        {
-            messages.Add(new TrayNotification(
-                TrayNotificationLevel.Info,
-                "Manual reset credits added",
-                $"+{newCredits - oldCredits} reset credits ({newCredits} total)",
-                current.FetchedAt));
-        }
-
-        var creditsIncreased = previous.ResetCreditsAvailable is { } previousCredits
-            && current.ResetCreditsAvailable is { } currentCredits
-            && currentCredits > previousCredits;
-        if (creditsIncreased)
-        {
-            return messages;
-        }
-
         var currentWindows = FlattenWindows(current).ToDictionary(window => window.Key, StringComparer.OrdinalIgnoreCase);
         var resetLabels = new List<string>();
         foreach (var previousWindow in FlattenWindows(previous))
@@ -1092,7 +1076,45 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
             _lowAlertActiveKeys.Remove(currentWindow.Key);
         }
 
-        if (resetLabels.Count > 0)
+        var creditsIncreased = false;
+        var creditsDecreased = false;
+        if (previous.ResetCreditsAvailable is { } oldCredits
+            && current.ResetCreditsAvailable is { } newCredits)
+        {
+            creditsIncreased = newCredits > oldCredits;
+            creditsDecreased = newCredits < oldCredits;
+
+            if (creditsIncreased)
+            {
+                messages.Add(new TrayNotification(
+                    TrayNotificationLevel.Info,
+                    "Manual reset credits added",
+                    $"+{newCredits - oldCredits} reset credits ({newCredits} total)",
+                    current.FetchedAt));
+            }
+            else if (creditsDecreased)
+            {
+                var text = $"-{oldCredits - newCredits} {Pluralize("reset credit", oldCredits - newCredits)} ({newCredits} remaining)";
+                if (resetLabels.Count > 0)
+                {
+                    text = $"{text}; {string.Join("; ", resetLabels)}";
+                }
+
+                messages.Add(new TrayNotification(
+                    TrayNotificationLevel.Info,
+                    "Reset credit used",
+                    text,
+                    current.FetchedAt));
+            }
+        }
+
+        if (TryEvaluateTrackedResetCreditAdds(previous, current, creditsIncreased, out var trackedCreditNotification)
+            && trackedCreditNotification is not null)
+        {
+            messages.Add(trackedCreditNotification);
+        }
+
+        if (resetLabels.Count > 0 && !creditsDecreased)
         {
             messages.Add(new TrayNotification(
                 TrayNotificationLevel.Info,
@@ -1119,7 +1141,47 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
 
         var previousUsed = Math.Clamp(previous.UsedPercent, 0, 100);
         var currentUsed = Math.Clamp(current.UsedPercent, 0, 100);
-        return previousUsed - currentUsed >= 50 || (previousUsed >= 90 && currentUsed <= 10);
+        var usedDrop = previousUsed - currentUsed;
+        return usedDrop >= 5 || (usedDrop > 0 && currentUsed <= 5);
+    }
+
+    private bool TryEvaluateTrackedResetCreditAdds(
+        RateLimitDashboardSnapshot previous,
+        RateLimitDashboardSnapshot current,
+        bool officialCountIncreased,
+        out TrayNotification? notification)
+    {
+        notification = null;
+        if (!ResetCreditExpiryLookupEnabled || current.ResetCreditDetails is not { } report)
+        {
+            _knownResetCreditKeys.Clear();
+            return false;
+        }
+
+        var currentKeys = report.Credits.Select(CreateResetCreditAlertKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (previous.ResetCreditDetails is not { } previousReport)
+        {
+            _knownResetCreditKeys.Clear();
+            _knownResetCreditKeys.UnionWith(currentKeys);
+            return false;
+        }
+
+        var previousKeys = previousReport.Credits.Select(CreateResetCreditAlertKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newTrackedCredits = currentKeys.Count(key => !previousKeys.Contains(key) && !_knownResetCreditKeys.Contains(key));
+        _knownResetCreditKeys.Clear();
+        _knownResetCreditKeys.UnionWith(currentKeys);
+
+        if (officialCountIncreased || newTrackedCredits <= 0)
+        {
+            return false;
+        }
+
+        notification = new TrayNotification(
+            TrayNotificationLevel.Info,
+            "Reset credits added",
+            $"+{newTrackedCredits} tracked ({report.Credits.Count} tracked)",
+            current.FetchedAt);
+        return true;
     }
 
     private void ReseedLowAlertState(RateLimitDashboardSnapshot? snapshot)
@@ -1159,8 +1221,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    private void ReseedKnownResetCreditState(RateLimitDashboardSnapshot snapshot)
+    {
+        _knownResetCreditKeys.Clear();
+        if (!ResetCreditExpiryLookupEnabled || snapshot.ResetCreditDetails is not { } report)
+        {
+            return;
+        }
+
+        _knownResetCreditKeys.UnionWith(report.Credits.Select(CreateResetCreditAlertKey));
+    }
+
     private static string CreateResetCreditAlertKey(ResetCreditInfo credit) =>
         $"{credit.ResetType}|{credit.GrantedAt.UtcDateTime:O}|{credit.ExpiresAt.UtcDateTime:O}";
+
+    private static string Pluralize(string singular, long count) =>
+        count == 1 ? singular : $"{singular}s";
 
     private void AddNotification(TrayNotification notification)
     {
