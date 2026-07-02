@@ -6,8 +6,14 @@ Thanks for helping make Codex Reset Tray better.
 
 ```powershell
 dotnet restore .\CodexResetTray.slnx
-dotnet test .\CodexResetTray.slnx
 dotnet build .\CodexResetTray.slnx -c Release
+dotnet test .\CodexResetTray.slnx -c Release --no-build
+```
+
+Release scripts use PowerShell 7+ (`pwsh`). Before opening a release-oriented PR, run:
+
+```powershell
+pwsh -NoProfile -File .\packaging\verify-release.ps1
 ```
 
 ## Design Principles
@@ -20,8 +26,10 @@ dotnet build .\CodexResetTray.slnx -c Release
 
 ## Pull Request Checklist
 
+- Target the `main` branch.
 - Tests cover parser, safety, or formatting changes.
-- `dotnet test` passes locally.
 - `dotnet build -c Release` passes with no warnings.
+- `dotnet test .\CodexResetTray.slnx -c Release --no-build` passes locally.
+- Release-impacting changes pass `pwsh -NoProfile -File .\packaging\verify-release.ps1`.
 - New Codex RPC methods are documented and justified.
 - No secrets, generated binaries, or local `bin/obj` output are committed.

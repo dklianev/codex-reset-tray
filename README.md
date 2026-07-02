@@ -114,7 +114,9 @@ It stores the current executable path with `--minimized` and does not require ad
 
 ## Development
 
-Install the .NET 10 SDK, then run:
+Install the .NET 10 SDK. Release scripts also use PowerShell 7+ (`pwsh`).
+
+For day-to-day development:
 
 ```powershell
 dotnet restore .\CodexResetTray.slnx

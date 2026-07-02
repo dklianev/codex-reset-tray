@@ -381,7 +381,7 @@
                                                        DockPanel.Dock="Right" Foreground="{StaticResource MutedInkBrush}" />
                                         </DockPanel>
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Content="Expiry lookup" IsChecked="{Binding ResetCreditExpiryLookupEnabled, Mode=TwoWay}"
+                                    <CheckBox Grid.Column="1" Content="Expiry metadata" IsChecked="{Binding ResetCreditExpiryLookupEnabled, Mode=TwoWay}"
                                               Style="{StaticResource InlineToggleCheckBox}" VerticalAlignment="Top" Margin="14,1,0,0"
                                               ToolTip="Opt-in metadata lookup. Reads local Codex auth credentials and calls an unofficial ChatGPT endpoint." />
                                 </Grid>

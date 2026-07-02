@@ -1,6 +1,15 @@
 # Release Guide
 
+## Repository
+
+- Suggested GitHub repository name: `codex-reset-tray`.
+- Default branch: `main`.
+- Tag format: `v0.1.0`, `v0.1.1`, and so on.
+- Release notes should be based on `CHANGELOG.md`.
+
 ## Local Checks
+
+Release scripts use PowerShell 7+ (`pwsh`).
 
 ```powershell
 pwsh -NoProfile -File .\packaging\verify-release.ps1
@@ -34,4 +43,5 @@ Before a tagged release:
 1. Update `Version` in `src/CodexResetTray.App/CodexResetTray.App.csproj`.
 2. Update `CHANGELOG.md`.
 3. Run local checks.
-4. Create a GitHub release with `artifacts\release\CodexResetTray-win-x64.zip`.
+4. Create a signed tag such as `v0.1.0` from `main`.
+5. Create a GitHub release with `artifacts\release\CodexResetTray-win-x64.zip`.
