@@ -116,7 +116,7 @@ public sealed class DashboardNotificationTests
     }
 
     [Fact]
-    public async Task RefreshAsync_notifies_when_limits_are_directly_reset_with_smaller_usage_drop()
+    public async Task RefreshAsync_notifies_when_remaining_becomes_100_before_scheduled_reset_even_from_lower_usage()
     {
         var now = DateTimeOffset.Now;
         using var viewModel = new DashboardViewModel(
@@ -134,10 +134,29 @@ public sealed class DashboardNotificationTests
         Assert.Equal("Codex limits reset", notification.Title);
         Assert.Contains("5-hour", notification.Text);
         Assert.Contains("100% left", notification.Text);
+        Assert.Equal(100, viewModel.PrimaryRemainingPercent);
     }
 
     [Fact]
-    public async Task RefreshAsync_notifies_when_reset_credit_is_consumed_for_instant_reset()
+    public async Task RefreshAsync_does_not_notify_for_early_reset_when_remaining_does_not_reach_100()
+    {
+        var now = DateTimeOffset.Now;
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                CreateSnapshot(now, primaryUsed: 28, weeklyUsed: 64, credits: 0, primaryReset: now.AddHours(2)),
+                CreateSnapshot(now.AddMinutes(1), primaryUsed: 1, weeklyUsed: 64, credits: 0, primaryReset: now.AddHours(5))),
+            alertSettingsService: new StubAlertSettingsService(thresholdPercent: null));
+        var notifications = CaptureNotifications(viewModel);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync(isSilent: true);
+
+        Assert.Empty(notifications);
+        Assert.Empty(viewModel.Notifications);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_notifies_limit_reset_when_credit_count_decreases_and_remaining_reaches_100()
     {
         var now = DateTimeOffset.Now;
         using var viewModel = new DashboardViewModel(
@@ -152,9 +171,7 @@ public sealed class DashboardNotificationTests
 
         var notification = Assert.Single(notifications);
         Assert.Equal(TrayNotificationLevel.Info, notification.Level);
-        Assert.Equal("Reset credit used", notification.Title);
-        Assert.Contains("-1 reset credit", notification.Text);
-        Assert.Contains("1 remaining", notification.Text);
+        Assert.Equal("Codex limits reset", notification.Title);
         Assert.Contains("5-hour 100% left", notification.Text);
     }
 
@@ -179,7 +196,7 @@ public sealed class DashboardNotificationTests
     }
 
     [Fact]
-    public async Task RefreshAsync_notifies_when_tracked_reset_credit_is_added_without_count_change()
+    public async Task RefreshAsync_notifies_when_expiry_report_credit_count_increases()
     {
         var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
         var alerts = new StubAlertSettingsService(thresholdPercent: null)
@@ -191,8 +208,8 @@ public sealed class DashboardNotificationTests
         var secondCreditExpires = now.AddDays(22);
         using var viewModel = new DashboardViewModel(
             new SequenceRateLimitSource(
-                CreateSnapshot(now, primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now, firstCreditExpires)),
-                CreateSnapshot(now.AddMinutes(1), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddMinutes(1), firstCreditExpires, secondCreditExpires))),
+                CreateSnapshot(now, primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now, availableCount: 1, firstCreditExpires)),
+                CreateSnapshot(now.AddMinutes(1), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddMinutes(1), availableCount: 2, firstCreditExpires, secondCreditExpires))),
             alertSettingsService: alerts);
         var notifications = CaptureNotifications(viewModel);
 
@@ -202,8 +219,8 @@ public sealed class DashboardNotificationTests
         var notification = Assert.Single(notifications);
         Assert.Equal(TrayNotificationLevel.Info, notification.Level);
         Assert.Equal("Reset credits added", notification.Title);
-        Assert.Contains("+1 tracked", notification.Text);
-        Assert.Contains("2 tracked", notification.Text);
+        Assert.Contains("+1 reset credit", notification.Text);
+        Assert.Contains("2 total", notification.Text);
     }
 
     [Fact]
@@ -221,6 +238,29 @@ public sealed class DashboardNotificationTests
             new SequenceRateLimitSource(
                 CreateSnapshot(now, primaryUsed: 20, weeklyUsed: 30, credits: 2),
                 CreateSnapshot(now.AddMinutes(1), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddMinutes(1), firstCreditExpires, secondCreditExpires))),
+            alertSettingsService: alerts);
+        var notifications = CaptureNotifications(viewModel);
+
+        await viewModel.RefreshAsync();
+        await viewModel.RefreshAsync(isSilent: true);
+
+        Assert.Empty(notifications);
+        Assert.Empty(viewModel.Notifications);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_does_not_notify_when_expiry_rows_change_without_credit_count_increase()
+    {
+        var now = DateTimeOffset.Parse("2026-06-28T10:00:00Z");
+        var alerts = new StubAlertSettingsService(thresholdPercent: null)
+        {
+            ResetCreditExpiryLookupEnabled = true,
+            ResetCreditExpiryWarningHours = 48
+        };
+        using var viewModel = new DashboardViewModel(
+            new SequenceRateLimitSource(
+                CreateSnapshot(now, primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now, availableCount: 2, now.AddDays(20), now.AddDays(22))),
+                CreateSnapshot(now.AddMinutes(1), primaryUsed: 20, weeklyUsed: 30, credits: 2, resetCreditDetails: CreateCreditReport(now.AddMinutes(1), availableCount: 2, now.AddDays(21), now.AddDays(23)))),
             alertSettingsService: alerts);
         var notifications = CaptureNotifications(viewModel);
 
@@ -381,8 +421,11 @@ public sealed class DashboardNotificationTests
     }
 
     private static ResetCreditReport CreateCreditReport(DateTimeOffset fetchedAt, params DateTimeOffset[] expiries) =>
+        CreateCreditReport(fetchedAt, expiries.Length, expiries);
+
+    private static ResetCreditReport CreateCreditReport(DateTimeOffset fetchedAt, long? availableCount, params DateTimeOffset[] expiries) =>
         new(
-            expiries.Length,
+            availableCount,
             expiries
                 .Select((expiresAt, index) => new ResetCreditInfo(
                     index == 0 ? "One free rate limit reset" : $"Reset credit {index + 1}",
